@@ -1,0 +1,26 @@
+---
+adr_number: "003"
+status: aceito
+created: 2026-09-09
+supersedes: ""
+superseded_by: ""
+---
+# ADR 003: Escala organizada por turno (manhã/tarde/noite)
+
+## Contexto
+As planilhas atuais são separadas por turno e os usuários já pensam a escala nessa estrutura. Alterar o eixo central (ex.: por turma ou por UC) aumentaria a curva de aprendizado sem ganho imediato.
+
+## Alternativas Consideradas
+- **Organizar por turma:** prós — visão por curso; contras — diverge do hábito atual.
+- **Organizar por UC:** prós — visão curricular; contras — dificulta a conferência por turno.
+- **Organizar por turno:** prós — espelha as planilhas, adoção imediata; contras — nível fixo de organização.
+
+## Decisão
+Primeiro nível de organização = **turno**; dentro do turno, escala por **turma × data**, com campos de professor **titular** e **substituto**.
+
+## Consequências
+- **Positivas:** adoção imediata; equivalência direta com as planilhas atuais (não perde função).
+- **Negativas:** estrutura fixa — flexibilizar isso pode ser revisitado em fase futura.
+- **Neutras:** a manutenção do código das turmas/UCs das planilhas como referência facilita a carga inicial.
+
+Fontes: planilhas `MANHA_-_26_-_UC5_-_7074D.xlsx`, `TARDE_-_26.xlsx`, `NOITE_-_26.xlsx`, `Conferencia_professores_Informatica_2026.xlsx` (estrutura observada: semana/data × códigos de turma).

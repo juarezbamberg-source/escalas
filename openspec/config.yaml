@@ -1,0 +1,38 @@
+schema: spec-driven
+context: |
+  Projeto: Sistema de escala de professores do curso Tecnico em Informatica do SENAC-RS, unidade Gravatai.
+  Objetivo da fase 1: substituir planilhas Excel por uma aplicacao web com regras fortes de integridade.
+  Fonte funcional: PRD/TRD e ADRs armazenados na raiz do repositorio.
+  Stack definida para backend: Python, FastAPI, SQLAlchemy, Pydantic e PostgreSQL.
+  Banco de desenvolvimento pode usar SQLite, desde que permaneça compativel com o modelo relacional final.
+  O eixo principal da interface e da consulta e o turno: manha, tarde e noite.
+  Regras criticas:
+  - Nao permitir duplicidade de alocacao por turma, data e turno.
+  - Nao permitir um mesmo professor em duas turmas no mesmo turno e data sem override.
+  - Nao permitir professor titular igual ao substituto.
+  - Override exige justificativa com no minimo 10 caracteres e registra forcada = true.
+  - Professores PF possuem limite anual de 300 horas; CLT e PJ nao.
+  - O calendario usa semaforo visual nas cores verde, vermelho, amarelo e roxo.
+
+rules:
+  proposal:
+    - Manter o foco na fase 1 descrita no PRD.
+    - Explicitar escopo, nao escopo e riscos operacionais da migracao de planilhas.
+  specs:
+    - Escrever requisitos testaveis, em linguagem objetiva, derivados dos criterios de aceite.
+    - Preservar mensagens de erro exatas quando elas estiverem definidas no PRD.
+  design:
+    - Descrever entidades, validacoes e fronteiras entre API, servicos e persistencia.
+    - Explicitar o que fica pronto para PostgreSQL e o que pode usar SQLite no desenvolvimento.
+  tasks:
+    - Dividir em passos pequenos, verificaveis e em ordem de dependencia.
+    - Incluir tarefas de testes automatizados para regras de negocio.
+
+operations:
+  apply:
+    guidance:
+      - Implementar por fatias pequenas e marcar tarefas concluidas conforme avancam.
+      - Priorizar primeiro as regras de integridade e depois a interface.
+  archive:
+    guidance:
+      - Antes de arquivar, garantir que as specs reflitam o comportamento realmente entregue.

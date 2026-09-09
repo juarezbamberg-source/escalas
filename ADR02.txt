@@ -1,0 +1,24 @@
+---
+adr_number: "002"
+status: aceito
+created: 2026-09-09
+supersedes: ""
+superseded_by: ""
+---
+# ADR 002: Conflito bloqueado por padrão, com override justificado
+
+## Contexto
+Conflitos (professor em duas turmas no mesmo turno/data; titular = substituto; alocação duplicada) são críticos. Porém bloqueio total impede a operação real quando a coordenação precisa autorizar uma exceção (ex.: carência de professor).
+
+## Alternativas Consideradas
+- **Bloqueio rígido:** prós — integridade máxima; contras — engessa operação.
+- **Apenas avisar:** prós — flexibilidade; contras — perde rastreabilidade da exceção.
+- **Bloquear + override com justificativa obrigatória:** prós — integridade por padrão + exceção auditável; contras — pequeno atrito na interface.
+
+## Decisão
+Bloquear por padrão (400/409 com mensagens exatas do PRD) e permitir override apenas com **justificativa de no mínimo 10 caracteres**, registrando `forcada = true`.
+
+## Consequências
+- **Positivas:** integridade por padrão; toda exceção fica justificada e rastreável.
+- **Negativas:** interface precisa de passo extra no fluxo de override.
+- **Neutras:** campo de justificativa vira dado de auditoria.

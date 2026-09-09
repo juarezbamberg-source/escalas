@@ -1,0 +1,24 @@
+---
+adr_number: "001"
+status: aceito
+created: 2026-09-09
+supersedes: ""
+superseded_by: ""
+---
+# ADR 001: Banco relacional como fonte única da verdade
+
+## Contexto
+A escala vive em planilhas Excel (uma por turno + conferência), com formatação e códigos que crescem e dificultam a manutenção. Duplicidade e conflito são críticos e precisam de garantia forte, não de vigilância manual.
+
+## Alternativas Consideradas
+- **Manter Excel:** prós — zero mudança; contras — dor atual permanece, sem integridade garantida.
+- **Arquivos CSV/planilhas na rede:** prós — simples; contras — sem constraints, sem consulta estruturada.
+- **Banco relacional com UNIQUE/CHECK:** prós — integridade automática, consultas; contras — exige migração e tela própria.
+
+## Decisão
+Usar **banco relacional** com constraints `UNIQUE`/`CHECK` como fonte única da verdade, espelhando a estrutura observada nas planilhas (turno × turma × semana/data).
+
+## Consequências
+- **Positivas:** duplicidade impossível no banco; consulta por turno trivial; rastreabilidade.
+- **Negativas:** carga única de dados das planilhas é necessária e precisa ser validada.
+- **Neutras:** modelo relacional é mais rígido que planilhas — benefício aceito.
