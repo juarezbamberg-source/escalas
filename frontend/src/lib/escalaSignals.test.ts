@@ -57,7 +57,10 @@ describe("buildSignalExplanation", () => {
       forcada: true,
       status_visual: "VERMELHO",
     });
-    expect(result.summary).toContain("+1 motivo");
+    // VERMELHO -> "Conflito", sem substituto -> "Sem substituto", forcada -> "Override".
+    // O resumo mantem o primeiro label e contabiliza os demais.
+    expect(result.labels).toEqual(["Conflito", "Sem substituto", "Override"]);
+    expect(result.summary).toBe("Conflito +2 motivo(s)");
   });
 });
 

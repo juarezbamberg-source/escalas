@@ -1,13 +1,15 @@
 from datetime import date
 
-from app.models.enums import Turno
 from app.schemas.common import BaseSchema
 
 
 class AlocacaoCreate(BaseSchema):
     turma_id: int
     data: date
-    turno: Turno
+    # Aceita string livre para que a validacao de allowlist aconteca no servico
+    # (validar_turno), garantindo 400 + mensagem exata da spec ("Turno invalido.
+    # Informe manha, tarde ou noite.") em vez de 422 do Pydantic.
+    turno: str
     professor_titular_id: int
     professor_substituto_id: int | None = None
     liberar_fim_de_semana: bool = False
@@ -60,7 +62,8 @@ class AlocacaoBulkCreateRequest(BaseSchema):
     turma_id: int
     data_inicial: date
     data_final: date
-    turnos: list[Turno]
+    # String livre: allowlist validada no servico (ver AlocacaoCreate.turno).
+    turnos: list[str]
     dias_da_semana: list[int]
     professor_titular_id: int
     professor_substituto_id: int | None = None
