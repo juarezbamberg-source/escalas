@@ -1,12 +1,13 @@
 from datetime import date
 
+from app.models.enums import Turno
 from app.schemas.common import BaseSchema
 
 
 class AlocacaoCreate(BaseSchema):
     turma_id: int
     data: date
-    turno: str
+    turno: Turno
     professor_titular_id: int
     professor_substituto_id: int | None = None
     liberar_fim_de_semana: bool = False
@@ -59,7 +60,7 @@ class AlocacaoBulkCreateRequest(BaseSchema):
     turma_id: int
     data_inicial: date
     data_final: date
-    turnos: list[str]
+    turnos: list[Turno]
     dias_da_semana: list[int]
     professor_titular_id: int
     professor_substituto_id: int | None = None

@@ -19,7 +19,7 @@ export type Turma = {
   id: number;
   codigo: string;
   nome: string;
-  turno_padrao: string;
+  turno_padrao: Turno;
   uc_id: number;
 };
 
@@ -31,7 +31,7 @@ export type Alocacao = {
   uc_codigo: string;
   uc_nome: string;
   data: string;
-  turno: string;
+  turno: Turno;
   professor_titular_id: number;
   professor_titular_nome: string;
   professor_substituto_id: number | null;
@@ -44,7 +44,7 @@ export type AlocacaoBulkDeleteItem = {
   id: number;
   turma_codigo: string;
   data: string;
-  turno: string;
+  turno: Turno;
   professor_titular_nome: string;
   professor_substituto_nome: string | null;
 };
@@ -61,7 +61,7 @@ export type AlocacaoBulkDeleteResponse = {
 
 export type AlocacaoBulkCreateItem = {
   data: string;
-  turno: string;
+  turno: Turno;
   turma_id: number;
   turma_codigo: string;
   uc_id: number;
@@ -86,7 +86,7 @@ export type AlocacaoBulkCreateResponse = {
 
 export type AlocacaoTurmaPeriodoItem = {
   data: string;
-  turno: string;
+  turno: Turno;
   turma_id: number;
   turma_codigo: string;
   uc_id: number;
@@ -104,7 +104,7 @@ export type CalendarioItem = {
   uc_codigo: string;
   uc_nome: string;
   data: string;
-  turno: string;
+  turno: Turno;
   professor_titular_nome: string | null;
   professor_substituto_nome: string | null;
   status_visual: StatusVisual;
