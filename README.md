@@ -84,40 +84,7 @@ npm run test -- --run
 npm run build
 ```
 
-### Infraestrutura e qualidade (Onda 2)
-
-A Onda 2 está integrada à `main` e é validada pelo workflow `.github/workflows/ci.yml`.
-
-#### Banco e migrações
-
-```bash
-python -m pip install -e ".[dev]"
-python -m alembic upgrade head
-python -m alembic current
-```
-
-O banco local usa SQLite por padrão (`DATABASE_URL` em `.env`). O schema de desenvolvimento/produção deve ser alterado por migrações Alembic; o `create_all` não é executado no lifespan da API.
-
-#### Qualidade e testes
-
-```bash
-# backend, na raiz
-python -m pytest
-
-# frontend
-cd frontend
-npm install
-npm run lint
-npm run test -- --run
-npm run build
-```
-
-A meta de cobertura backend é 70% (`pytest-cov`); a validação pós-merge da Onda 2 atingiu 92,67%. O CI executa backend e frontend em todo pull request e push para `main`. Warnings de `react-hooks/exhaustive-deps` não bloqueiam o lint; devem ser tratados durante a refatoração da Onda 3.
-
-### Próxima mudança — Onda 3
-
-A proposta está em `openspec/changes/refactor-onda-3/`. O foco é decompor `EscalaPage.tsx` e `CadastrosPage.tsx`, centralizar helpers e criar o endpoint dedicado `GET /professores/carga`. A implementação deve seguir as fatias e tarefas da change, começando pelo backend e sem alterar regras funcionais existentes.
-
+## Estrutura do projeto
 
 - `app/`: API, modelos, schemas e regras de negocio
 - `frontend/`: SPA operacional
@@ -131,7 +98,6 @@ A proposta está em `openspec/changes/refactor-onda-3/`. O foco é decompor `Esc
 - `GET/POST/DELETE /ucs`
 - `GET/POST/DELETE /turmas`
 - `GET/POST/DELETE /alocacoes`
-- `GET /professores/carga`
 - `GET /alocacoes/calendario`
 - `GET /alocacoes/turma-periodo`
 - `POST /alocacoes/remocao-lote`
