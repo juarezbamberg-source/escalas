@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { useAppStatus } from "../app/AppStatusContext";
-import { api, ApiError } from "../lib/api";
+import { api } from "../lib/api";
+import { readErrorMessage } from "../lib/errors";
 import type { SignalExplanation } from "../lib/escalaSignals";
 import type { Professor, StatusVisual, Turma, Turno } from "../types/api";
 
@@ -75,22 +76,16 @@ function buildInitialForm(
     turno: normalizeTurno(row.turno),
     turma_id: row.turma_id || turmas[0]?.id || 0,
     professor_titular_id: row.professor_titular_id || professores[0]?.id || 0,
-    professor_substituto_id: action === "substituir" ? row.professor_substituto_id || 0 : row.professor_substituto_id || 0,
+    professor_substituto_id:
+      action === "substituir" ? row.professor_substituto_id || 0 : row.professor_substituto_id || 0,
     liberar_fim_de_semana: false,
     override: action === "override",
-    justificativa_override: action === "override" ? row.justificativa_override ?? "" : "",
+    justificativa_override: action === "override" ? (row.justificativa_override ?? "") : "",
   };
 }
 
 function includesProfessor(row: EscalaDrawerRow, professorId: number) {
   return row.professor_titular_id === professorId || row.professor_substituto_id === professorId;
-}
-
-function readErrorMessage(error: unknown) {
-  if (error instanceof ApiError) {
-    return error.message;
-  }
-  return "Nao foi possivel concluir a acao contextual agora.";
 }
 
 function actionLabel(action: EscalaDrawerAction) {
@@ -115,7 +110,9 @@ export function EscalaActionDrawer({
   turmas,
 }: EscalaActionDrawerProps) {
   const [currentAction, setCurrentAction] = useState<EscalaDrawerAction>(action);
-  const [formState, setFormState] = useState<FormState>(() => buildInitialForm(action, row, professores, turmas));
+  const [formState, setFormState] = useState<FormState>(() =>
+    buildInitialForm(action, row, professores, turmas),
+  );
   const [submitting, setSubmitting] = useState(false);
   const { showError, showSuccess } = useAppStatus();
 
@@ -125,20 +122,31 @@ export function EscalaActionDrawer({
   }, [action, professores, row, turmas]);
 
   const sameSlotRows = rows.filter(
-    (candidate) => candidate.data === formState.data && candidate.turno === formState.turno && candidate.id !== row.id,
+    (candidate) =>
+      candidate.data === formState.data &&
+      candidate.turno === formState.turno &&
+      candidate.id !== row.id,
   );
-  const duplicateTurma = sameSlotRows.find((candidate) => candidate.turma_id === formState.turma_id);
+  const duplicateTurma = sameSlotRows.find(
+    (candidate) => candidate.turma_id === formState.turma_id,
+  );
   const titularConflict = sameSlotRows.find((candidate) =>
-    formState.professor_titular_id ? includesProfessor(candidate, formState.professor_titular_id) : false,
+    formState.professor_titular_id
+      ? includesProfessor(candidate, formState.professor_titular_id)
+      : false,
   );
   const substituteConflict = sameSlotRows.find((candidate) =>
-    formState.professor_substituto_id ? includesProfessor(candidate, formState.professor_substituto_id) : false,
+    formState.professor_substituto_id
+      ? includesProfessor(candidate, formState.professor_substituto_id)
+      : false,
   );
   const weekendDate = isWeekendDate(formState.data);
 
   const preventiveWarnings: string[] = [];
   if (weekendDate && !formState.liberar_fim_de_semana) {
-    preventiveWarnings.push("Marque a liberacao de fim de semana para registrar atividade extracurricular neste dia.");
+    preventiveWarnings.push(
+      "Marque a liberacao de fim de semana para registrar atividade extracurricular neste dia.",
+    );
   }
   if (currentAction === "substituir" && !formState.professor_substituto_id) {
     preventiveWarnings.push("Informe um substituto para concluir a acao de substituicao.");
@@ -150,16 +158,24 @@ export function EscalaActionDrawer({
     preventiveWarnings.push("O professor substituto deve ser diferente do professor titular.");
   }
   if (duplicateTurma && !formState.override) {
-    preventiveWarnings.push(`Ja existe alocacao para a turma ${duplicateTurma.turma_codigo} neste turno e data. Use override se precisar insistir.`);
+    preventiveWarnings.push(
+      `Ja existe alocacao para a turma ${duplicateTurma.turma_codigo} neste turno e data. Use override se precisar insistir.`,
+    );
   }
   if (titularConflict && !formState.override) {
-    preventiveWarnings.push(`O professor titular ja aparece em conflito com a turma ${titularConflict.turma_codigo} neste turno e data.`);
+    preventiveWarnings.push(
+      `O professor titular ja aparece em conflito com a turma ${titularConflict.turma_codigo} neste turno e data.`,
+    );
   }
   if (substituteConflict && !formState.override) {
-    preventiveWarnings.push(`O professor substituto ja aparece em conflito com a turma ${substituteConflict.turma_codigo} neste turno e data.`);
+    preventiveWarnings.push(
+      `O professor substituto ja aparece em conflito com a turma ${substituteConflict.turma_codigo} neste turno e data.`,
+    );
   }
   if (formState.override && formState.justificativa_override.trim().length < 10) {
-    preventiveWarnings.push("Informe uma justificativa com pelo menos 10 caracteres para concluir o override.");
+    preventiveWarnings.push(
+      "Informe uma justificativa com pelo menos 10 caracteres para concluir o override.",
+    );
   }
 
   const isSubmitDisabled =
@@ -170,7 +186,8 @@ export function EscalaActionDrawer({
     (weekendDate && !formState.liberar_fim_de_semana) ||
     (currentAction === "substituir" && !formState.professor_substituto_id) ||
     (formState.override && formState.justificativa_override.trim().length < 10) ||
-    (formState.professor_substituto_id > 0 && formState.professor_substituto_id === formState.professor_titular_id);
+    (formState.professor_substituto_id > 0 &&
+      formState.professor_substituto_id === formState.professor_titular_id);
 
   async function handleSubmit() {
     setSubmitting(true);
@@ -196,8 +213,18 @@ export function EscalaActionDrawer({
   }
 
   return (
-    <div className="drawer-shell" role="dialog" aria-modal="true" aria-labelledby="escala-drawer-title">
-      <button type="button" className="drawer-backdrop" aria-label="Fechar painel contextual" onClick={onClose} />
+    <div
+      className="drawer-shell"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="escala-drawer-title"
+    >
+      <button
+        type="button"
+        className="drawer-backdrop"
+        aria-label="Fechar painel contextual"
+        onClick={onClose}
+      />
       <aside className="drawer-panel">
         <div className="drawer-panel__header">
           <div>
@@ -232,14 +259,20 @@ export function EscalaActionDrawer({
 
         <div className="guided-note">
           <strong>Contexto pre-preenchido</strong>
-          <p>Turno, data, turma e titular ja vieram do item selecionado. Ajuste apenas o necessario antes de salvar.</p>
+          <p>
+            Turno, data, turma e titular ja vieram do item selecionado. Ajuste apenas o necessario
+            antes de salvar.
+          </p>
         </div>
 
         <div className="guided-note">
           <strong>Leitura operacional do item</strong>
           <div className="status-badges">
             {signalExplanation.badges.map((badge) => (
-              <span key={`drawer-${badge.label}`} className={`status-badge status-badge--${badge.tone}`}>
+              <span
+                key={`drawer-${badge.label}`}
+                className={`status-badge status-badge--${badge.tone}`}
+              >
                 {badge.label}
               </span>
             ))}
@@ -255,8 +288,17 @@ export function EscalaActionDrawer({
         <div className="drawer-summary">
           <span className="status-badge">Turno: {formState.turno}</span>
           <span className="status-badge">Data: {formState.data}</span>
-          <span className="status-badge">Turma: {turmas.find((turma) => turma.id === formState.turma_id)?.codigo ?? row.turma_codigo}</span>
-          <span className="status-badge">Titular: {professores.find((professor) => professor.id === formState.professor_titular_id)?.nome ?? row.professor_titular_nome ?? "A definir"}</span>
+          <span className="status-badge">
+            Turma:{" "}
+            {turmas.find((turma) => turma.id === formState.turma_id)?.codigo ?? row.turma_codigo}
+          </span>
+          <span className="status-badge">
+            Titular:{" "}
+            {professores.find((professor) => professor.id === formState.professor_titular_id)
+              ?.nome ??
+              row.professor_titular_nome ??
+              "A definir"}
+          </span>
         </div>
 
         <div className="form-grid">
@@ -265,14 +307,21 @@ export function EscalaActionDrawer({
             <input
               type="date"
               value={formState.data}
-              onChange={(event) => setFormState((current) => ({ ...current, data: event.target.value }))}
+              onChange={(event) =>
+                setFormState((current) => ({ ...current, data: event.target.value }))
+              }
             />
           </label>
           <label>
             Turno
             <select
               value={formState.turno}
-              onChange={(event) => setFormState((current) => ({ ...current, turno: normalizeTurno(event.target.value) }))}
+              onChange={(event) =>
+                setFormState((current) => ({
+                  ...current,
+                  turno: normalizeTurno(event.target.value),
+                }))
+              }
             >
               <option value="manha">manha</option>
               <option value="tarde">tarde</option>
@@ -283,7 +332,9 @@ export function EscalaActionDrawer({
             Turma
             <select
               value={formState.turma_id}
-              onChange={(event) => setFormState((current) => ({ ...current, turma_id: Number(event.target.value) }))}
+              onChange={(event) =>
+                setFormState((current) => ({ ...current, turma_id: Number(event.target.value) }))
+              }
             >
               {turmas.map((turma) => (
                 <option key={turma.id} value={turma.id}>
@@ -349,7 +400,9 @@ export function EscalaActionDrawer({
               type="checkbox"
               checked={formState.override}
               disabled={currentAction === "override"}
-              onChange={(event) => setFormState((current) => ({ ...current, override: event.target.checked }))}
+              onChange={(event) =>
+                setFormState((current) => ({ ...current, override: event.target.checked }))
+              }
             />
             Registrar override
           </label>
@@ -386,7 +439,12 @@ export function EscalaActionDrawer({
           <Link to={fallbackHref} className="secondary-link">
             Abrir formulario completo
           </Link>
-          <button type="button" className="primary-button" disabled={isSubmitDisabled} onClick={handleSubmit}>
+          <button
+            type="button"
+            className="primary-button"
+            disabled={isSubmitDisabled}
+            onClick={handleSubmit}
+          >
             {submitting ? "Salvando..." : actionLabel(currentAction)}
           </button>
         </div>
