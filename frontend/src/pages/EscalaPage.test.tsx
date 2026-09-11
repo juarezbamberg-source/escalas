@@ -423,12 +423,14 @@ describe("EscalaPage", () => {
 
     const detailHeading = screen.getByRole("heading", { name: formatDate(tomorrow), level: 3 });
     const detailPanel = detailHeading.closest("aside");
+    const detailCard = within(detailPanel as HTMLElement).getByText("8080N").closest("article");
 
     expect(detailHeading).toBeInTheDocument();
     expect(detailPanel).not.toBeNull();
-    expect(within(detailPanel as HTMLElement).getByText(/maria oliveira/i)).toBeInTheDocument();
-    expect(within(detailPanel as HTMLElement).getByText(/^Substituto$/i)).toBeInTheDocument();
-    expect(within(detailPanel as HTMLElement).getByText(/carlos souza/i)).toBeInTheDocument();
+    expect(detailCard).not.toBeNull();
+    expect(within(detailCard as HTMLElement).getByText(/maria oliveira/i)).toBeInTheDocument();
+    expect(within(detailCard as HTMLElement).getByText(/^Substituto$/i)).toBeInTheDocument();
+    expect(within(detailCard as HTMLElement).getByText(/carlos souza/i)).toBeInTheDocument();
   });
 
   it("explica os sinais e separa titular e substituto na grade", async () => {
@@ -461,9 +463,10 @@ describe("EscalaPage", () => {
     await user.click(screen.getByRole("button", { name: `Abrir detalhe de ${formatDate(tomorrow)}` }));
     const detailHeading = screen.getByRole("heading", { name: formatDate(tomorrow), level: 3 });
     const detailPanel = detailHeading.closest("aside") as HTMLElement;
+    const detailCard = within(detailPanel).getByText("8080N").closest("article") as HTMLElement;
 
-    await user.click(within(detailPanel).getAllByText(/mais acoes/i)[0]);
-    await user.click(within(detailPanel).getByRole("button", { name: /^Substituir$/i }));
+    await user.click(within(detailCard).getAllByText(/mais acoes/i)[0]);
+    await user.click(within(detailCard).getAllByRole("button", { name: /^Substituir$/i })[0]);
 
     expect(await screen.findByText(/acao contextual/i)).toBeInTheDocument();
     const dialog = screen.getByRole("dialog");
