@@ -3,9 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 
 import { useAppStatus } from "../app/AppStatusContext";
 import { SectionCard } from "../components/SectionCard";
-import { api } from "../lib/api";
-import { readActionContext, type ActionContext, type ActionMode } from "../lib/actionContext";
-import { readErrorMessage } from "../lib/errors";
+import { api, ApiError } from "../lib/api";
 import { formatDate } from "../lib/format";
 import type {
   Alocacao,
@@ -21,6 +19,18 @@ type ReferenceData = {
   professores: Professor[];
   ucs: UnidadeCurricular[];
   turmas: Turma[];
+};
+
+type ActionMode = "alocar" | "substituir" | "override" | "remover";
+
+type ActionContext = {
+  action: ActionMode | null;
+  alocacaoId: number | null;
+  turmaId: number | null;
+  titularId: number | null;
+  substitutoId: number | null;
+  data: string;
+  turno: Turno | "";
 };
 
 type BulkRecurringForm = {
@@ -85,15 +95,9 @@ function isWeekendDate(value: string) {
 
 export function CadastrosPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [referenceData, setReferenceData] = useState<ReferenceData>({
-    professores: [],
-    ucs: [],
-    turmas: [],
-  });
+  const [referenceData, setReferenceData] = useState<ReferenceData>({ professores: [], ucs: [], turmas: [] });
   const [recentAllocation, setRecentAllocation] = useState<Alocacao | null>(null);
-  const [recentBulkPreview, setRecentBulkPreview] = useState<AlocacaoBulkCreateResponse | null>(
-    null,
-  );
+  const [recentBulkPreview, setRecentBulkPreview] = useState<AlocacaoBulkCreateResponse | null>(null);
   const [bulkSubmitting, setBulkSubmitting] = useState(false);
   const [professorForm, setProfessorForm] = useState(initialProfessor);
   const [ucForm, setUcForm] = useState(initialUc);
@@ -122,15 +126,8 @@ export function CadastrosPage() {
 
     setAlocacaoForm((current) => {
       const turmaId = actionContext.turmaId ?? current.turma_id ?? referenceData.turmas[0]?.id ?? 0;
-      const titularId =
-        actionContext.titularId ??
-        current.professor_titular_id ??
-        referenceData.professores[0]?.id ??
-        0;
-      const substitutoId =
-        actionContext.action === "substituir"
-          ? (actionContext.substitutoId ?? 0)
-          : current.professor_substituto_id;
+      const titularId = actionContext.titularId ?? current.professor_titular_id ?? referenceData.professores[0]?.id ?? 0;
+      const substitutoId = actionContext.action === "substituir" ? actionContext.substitutoId ?? 0 : current.professor_substituto_id;
 
       return {
         ...current,
@@ -147,11 +144,7 @@ export function CadastrosPage() {
     setBulkForm((current) => ({
       ...current,
       turma_id: actionContext.turmaId ?? current.turma_id ?? referenceData.turmas[0]?.id ?? 0,
-      professor_titular_id:
-        actionContext.titularId ??
-        current.professor_titular_id ??
-        referenceData.professores[0]?.id ??
-        0,
+      professor_titular_id: actionContext.titularId ?? current.professor_titular_id ?? referenceData.professores[0]?.id ?? 0,
       professor_substituto_id: actionContext.substitutoId ?? current.professor_substituto_id,
     }));
 
@@ -161,11 +154,7 @@ export function CadastrosPage() {
   async function refreshReferences() {
     startLoading();
     try {
-      const [professores, ucs, turmas] = await Promise.all([
-        api.listProfessores(),
-        api.listUcs(),
-        api.listTurmas(),
-      ]);
+      const [professores, ucs, turmas] = await Promise.all([api.listProfessores(), api.listUcs(), api.listTurmas()]);
       setReferenceData({ professores, ucs, turmas });
       setTurmaForm((current) => ({ ...current, uc_id: current.uc_id || ucs[0]?.id || 0 }));
       setAlocacaoForm((current) => ({
@@ -275,10 +264,7 @@ export function CadastrosPage() {
   return (
     <div className="page-stack">
       <SectionCard eyebrow="Base da operacao" title="Cadastros iniciais">
-        <p>
-          Cadastre professores, unidades curriculares, turmas, alocacoes isoladas e lancamentos
-          recorrentes sem sair da aplicacao.
-        </p>
+        <p>Cadastre professores, unidades curriculares, turmas, alocacoes isoladas e lancamentos recorrentes sem sair da aplicacao.</p>
       </SectionCard>
 
       {actionContext.action ? (
@@ -288,17 +274,9 @@ export function CadastrosPage() {
               <strong>{actionTitle(actionContext.action)}</strong>
               <p>{actionDescription(actionContext)}</p>
               <div className="status-badges">
-                {actionContext.turno ? (
-                  <span className="status-badge">Turno: {actionContext.turno}</span>
-                ) : null}
-                {actionContext.data ? (
-                  <span className="status-badge">Data: {actionContext.data}</span>
-                ) : null}
-                {actionContext.turmaId ? (
-                  <span className="status-badge">
-                    Turma: {findTurmaCode(referenceData, actionContext.turmaId)}
-                  </span>
-                ) : null}
+                {actionContext.turno ? <span className="status-badge">Turno: {actionContext.turno}</span> : null}
+                {actionContext.data ? <span className="status-badge">Data: {actionContext.data}</span> : null}
+                {actionContext.turmaId ? <span className="status-badge">Turma: {findTurmaCode(referenceData, actionContext.turmaId)}</span> : null}
               </div>
             </div>
             <div className="guided-panel__actions">
@@ -332,9 +310,7 @@ export function CadastrosPage() {
               Nome
               <input
                 value={professorForm.nome}
-                onChange={(event) =>
-                  setProfessorForm((current) => ({ ...current, nome: event.target.value }))
-                }
+                onChange={(event) => setProfessorForm((current) => ({ ...current, nome: event.target.value }))}
                 required
               />
             </label>
@@ -343,10 +319,7 @@ export function CadastrosPage() {
               <select
                 value={professorForm.contratacao}
                 onChange={(event) =>
-                  setProfessorForm((current) => ({
-                    ...current,
-                    contratacao: event.target.value as Contratacao,
-                  }))
+                  setProfessorForm((current) => ({ ...current, contratacao: event.target.value as Contratacao }))
                 }
               >
                 <option value="PF">PF</option>
@@ -384,9 +357,7 @@ export function CadastrosPage() {
               Codigo
               <input
                 value={ucForm.codigo}
-                onChange={(event) =>
-                  setUcForm((current) => ({ ...current, codigo: event.target.value }))
-                }
+                onChange={(event) => setUcForm((current) => ({ ...current, codigo: event.target.value }))}
                 required
               />
             </label>
@@ -394,9 +365,7 @@ export function CadastrosPage() {
               Nome
               <input
                 value={ucForm.nome}
-                onChange={(event) =>
-                  setUcForm((current) => ({ ...current, nome: event.target.value }))
-                }
+                onChange={(event) => setUcForm((current) => ({ ...current, nome: event.target.value }))}
                 required
               />
             </label>
@@ -407,10 +376,7 @@ export function CadastrosPage() {
                 min={1}
                 value={ucForm.carga_horaria}
                 onChange={(event) =>
-                  setUcForm((current) => ({
-                    ...current,
-                    carga_horaria: Number(event.target.value),
-                  }))
+                  setUcForm((current) => ({ ...current, carga_horaria: Number(event.target.value) }))
                 }
                 required
               />
@@ -450,9 +416,7 @@ export function CadastrosPage() {
               Codigo
               <input
                 value={turmaForm.codigo}
-                onChange={(event) =>
-                  setTurmaForm((current) => ({ ...current, codigo: event.target.value }))
-                }
+                onChange={(event) => setTurmaForm((current) => ({ ...current, codigo: event.target.value }))}
                 required
               />
             </label>
@@ -460,9 +424,7 @@ export function CadastrosPage() {
               Nome
               <input
                 value={turmaForm.nome}
-                onChange={(event) =>
-                  setTurmaForm((current) => ({ ...current, nome: event.target.value }))
-                }
+                onChange={(event) => setTurmaForm((current) => ({ ...current, nome: event.target.value }))}
                 required
               />
             </label>
@@ -470,12 +432,7 @@ export function CadastrosPage() {
               Turno padrao
               <select
                 value={turmaForm.turno_padrao}
-                onChange={(event) =>
-                  setTurmaForm((current) => ({
-                    ...current,
-                    turno_padrao: event.target.value as Turno,
-                  }))
-                }
+                onChange={(event) => setTurmaForm((current) => ({ ...current, turno_padrao: event.target.value as Turno }))}
               >
                 <option value="manha">manha</option>
                 <option value="tarde">tarde</option>
@@ -486,9 +443,7 @@ export function CadastrosPage() {
               UC vinculada
               <select
                 value={turmaForm.uc_id}
-                onChange={(event) =>
-                  setTurmaForm((current) => ({ ...current, uc_id: Number(event.target.value) }))
-                }
+                onChange={(event) => setTurmaForm((current) => ({ ...current, uc_id: Number(event.target.value) }))}
               >
                 {referenceData.ucs.map((uc) => (
                   <option key={uc.id} value={uc.id}>
@@ -497,11 +452,7 @@ export function CadastrosPage() {
                 ))}
               </select>
             </label>
-            <button
-              type="submit"
-              className="primary-button"
-              disabled={referenceData.ucs.length === 0}
-            >
+            <button type="submit" className="primary-button" disabled={referenceData.ucs.length === 0}>
               Salvar turma
             </button>
           </form>
@@ -516,9 +467,7 @@ export function CadastrosPage() {
         </SectionCard>
 
         <SectionCard eyebrow="Alocacoes" title="Registrar nova alocacao">
-          {actionContext.action === "alocar" ||
-          actionContext.action === "substituir" ||
-          actionContext.action === "override" ? (
+          {(actionContext.action === "alocar" || actionContext.action === "substituir" || actionContext.action === "override") ? (
             <div className="guided-note">
               <strong>Formulario guiado pelo contexto</strong>
               <p>{formGuidance(actionContext.action)}</p>
@@ -536,9 +485,7 @@ export function CadastrosPage() {
                   professor_substituto_id: alocacaoForm.professor_substituto_id || null,
                   liberar_fim_de_semana: alocacaoForm.liberar_fim_de_semana,
                   override: alocacaoForm.override,
-                  justificativa_override: alocacaoForm.override
-                    ? alocacaoForm.justificativa_override
-                    : null,
+                  justificativa_override: alocacaoForm.override ? alocacaoForm.justificativa_override : null,
                 });
                 setRecentAllocation(buildRecentAllocation(created, alocacaoForm, referenceData));
                 setAlocacaoForm((current) => ({
@@ -556,9 +503,7 @@ export function CadastrosPage() {
               <input
                 type="date"
                 value={alocacaoForm.data}
-                onChange={(event) =>
-                  setAlocacaoForm((current) => ({ ...current, data: event.target.value }))
-                }
+                onChange={(event) => setAlocacaoForm((current) => ({ ...current, data: event.target.value }))}
                 required
               />
             </label>
@@ -566,9 +511,7 @@ export function CadastrosPage() {
               Turno
               <select
                 value={alocacaoForm.turno}
-                onChange={(event) =>
-                  setAlocacaoForm((current) => ({ ...current, turno: event.target.value as Turno }))
-                }
+                onChange={(event) => setAlocacaoForm((current) => ({ ...current, turno: event.target.value as Turno }))}
               >
                 <option value="manha">manha</option>
                 <option value="tarde">tarde</option>
@@ -579,12 +522,7 @@ export function CadastrosPage() {
               Turma
               <select
                 value={alocacaoForm.turma_id}
-                onChange={(event) =>
-                  setAlocacaoForm((current) => ({
-                    ...current,
-                    turma_id: Number(event.target.value),
-                  }))
-                }
+                onChange={(event) => setAlocacaoForm((current) => ({ ...current, turma_id: Number(event.target.value) }))}
               >
                 {referenceData.turmas.map((turma) => (
                   <option key={turma.id} value={turma.id}>
@@ -598,10 +536,7 @@ export function CadastrosPage() {
               <select
                 value={alocacaoForm.professor_titular_id}
                 onChange={(event) =>
-                  setAlocacaoForm((current) => ({
-                    ...current,
-                    professor_titular_id: Number(event.target.value),
-                  }))
+                  setAlocacaoForm((current) => ({ ...current, professor_titular_id: Number(event.target.value) }))
                 }
               >
                 {referenceData.professores.map((professor) => (
@@ -616,10 +551,7 @@ export function CadastrosPage() {
               <select
                 value={alocacaoForm.professor_substituto_id}
                 onChange={(event) =>
-                  setAlocacaoForm((current) => ({
-                    ...current,
-                    professor_substituto_id: Number(event.target.value),
-                  }))
+                  setAlocacaoForm((current) => ({ ...current, professor_substituto_id: Number(event.target.value) }))
                 }
               >
                 <option value={0}>Sem substituto</option>
@@ -649,9 +581,7 @@ export function CadastrosPage() {
               <input
                 type="checkbox"
                 checked={alocacaoForm.override}
-                onChange={(event) =>
-                  setAlocacaoForm((current) => ({ ...current, override: event.target.checked }))
-                }
+                onChange={(event) => setAlocacaoForm((current) => ({ ...current, override: event.target.checked }))}
               />
               Registrar override
             </label>
@@ -661,10 +591,7 @@ export function CadastrosPage() {
                 <textarea
                   value={alocacaoForm.justificativa_override}
                   onChange={(event) =>
-                    setAlocacaoForm((current) => ({
-                      ...current,
-                      justificativa_override: event.target.value,
-                    }))
+                    setAlocacaoForm((current) => ({ ...current, justificativa_override: event.target.value }))
                   }
                   required
                 />
@@ -695,21 +622,13 @@ export function CadastrosPage() {
       <SectionCard eyebrow="Cadastro em lote" title="Lancamento recorrente por dias da semana">
         <div className="guided-note">
           <strong>Fluxo para nova UC em operacao</strong>
-          <p>
-            Escolha turma, professor, periodo, dias da semana e turnos para gerar o cronograma
-            recorrente com preview antes de gravar.
-          </p>
+          <p>Escolha turma, professor, periodo, dias da semana e turnos para gerar o cronograma recorrente com preview antes de gravar.</p>
         </div>
 
         <div className="form-grid">
           <label>
             Turma do lote
-            <select
-              value={bulkForm.turma_id}
-              onChange={(event) =>
-                setBulkForm((current) => ({ ...current, turma_id: Number(event.target.value) }))
-              }
-            >
+            <select value={bulkForm.turma_id} onChange={(event) => setBulkForm((current) => ({ ...current, turma_id: Number(event.target.value) }))}>
               {referenceData.turmas.map((turma) => (
                 <option key={turma.id} value={turma.id}>
                   {turma.codigo}
@@ -721,12 +640,7 @@ export function CadastrosPage() {
             Professor titular do lote
             <select
               value={bulkForm.professor_titular_id}
-              onChange={(event) =>
-                setBulkForm((current) => ({
-                  ...current,
-                  professor_titular_id: Number(event.target.value),
-                }))
-              }
+              onChange={(event) => setBulkForm((current) => ({ ...current, professor_titular_id: Number(event.target.value) }))}
             >
               {referenceData.professores.map((professor) => (
                 <option key={professor.id} value={professor.id}>
@@ -739,12 +653,7 @@ export function CadastrosPage() {
             Professor substituto do lote
             <select
               value={bulkForm.professor_substituto_id}
-              onChange={(event) =>
-                setBulkForm((current) => ({
-                  ...current,
-                  professor_substituto_id: Number(event.target.value),
-                }))
-              }
+              onChange={(event) => setBulkForm((current) => ({ ...current, professor_substituto_id: Number(event.target.value) }))}
             >
               <option value={0}>Sem substituto</option>
               {referenceData.professores.map((professor) => (
@@ -759,9 +668,7 @@ export function CadastrosPage() {
             <input
               type="date"
               value={bulkForm.data_inicial}
-              onChange={(event) =>
-                setBulkForm((current) => ({ ...current, data_inicial: event.target.value }))
-              }
+              onChange={(event) => setBulkForm((current) => ({ ...current, data_inicial: event.target.value }))}
             />
           </label>
           <label>
@@ -769,9 +676,7 @@ export function CadastrosPage() {
             <input
               type="date"
               value={bulkForm.data_final}
-              onChange={(event) =>
-                setBulkForm((current) => ({ ...current, data_final: event.target.value }))
-              }
+              onChange={(event) => setBulkForm((current) => ({ ...current, data_final: event.target.value }))}
             />
           </label>
           <div className="filter-group__wide">
@@ -825,10 +730,7 @@ export function CadastrosPage() {
               type="checkbox"
               checked={bulkForm.liberar_fim_de_semana}
               onChange={(event) =>
-                setBulkForm((current) => ({
-                  ...current,
-                  liberar_fim_de_semana: event.target.checked,
-                }))
+                setBulkForm((current) => ({ ...current, liberar_fim_de_semana: event.target.checked }))
               }
             />
             Liberar fins de semana para atividade extracurricular
@@ -837,9 +739,7 @@ export function CadastrosPage() {
             <input
               type="checkbox"
               checked={bulkForm.override}
-              onChange={(event) =>
-                setBulkForm((current) => ({ ...current, override: event.target.checked }))
-              }
+              onChange={(event) => setBulkForm((current) => ({ ...current, override: event.target.checked }))}
             />
             Permitir override recorrente
           </label>
@@ -848,12 +748,7 @@ export function CadastrosPage() {
               Justificativa do override recorrente
               <textarea
                 value={bulkForm.justificativa_override}
-                onChange={(event) =>
-                  setBulkForm((current) => ({
-                    ...current,
-                    justificativa_override: event.target.value,
-                  }))
-                }
+                onChange={(event) => setBulkForm((current) => ({ ...current, justificativa_override: event.target.value }))}
               />
             </label>
           ) : null}
@@ -864,11 +759,7 @@ export function CadastrosPage() {
             type="button"
             className="ghost-button"
             onClick={() => void handlePreviewRecurring()}
-            disabled={
-              bulkSubmitting ||
-              referenceData.professores.length === 0 ||
-              referenceData.turmas.length === 0
-            }
+            disabled={bulkSubmitting || referenceData.professores.length === 0 || referenceData.turmas.length === 0}
           >
             {bulkSubmitting ? "Processando..." : "Validar preview do lote"}
           </button>
@@ -891,9 +782,7 @@ export function CadastrosPage() {
               </div>
               <div className="status-badges">
                 <span className="status-badge">Validos: {recentBulkPreview.total_validos}</span>
-                <span className="status-badge">
-                  Bloqueados: {recentBulkPreview.total_bloqueados}
-                </span>
+                <span className="status-badge">Bloqueados: {recentBulkPreview.total_bloqueados}</span>
                 <span className="status-badge">Criados: {recentBulkPreview.total_criados}</span>
               </div>
             </div>
@@ -925,25 +814,24 @@ export function CadastrosPage() {
             ) : null}
           </div>
         ) : (
-          <p className="state-message">
-            Valide o lote para conferir datas geradas, conflitos e itens prontos para gravar.
-          </p>
+          <p className="state-message">Valide o lote para conferir datas geradas, conflitos e itens prontos para gravar.</p>
         )}
       </SectionCard>
     </div>
   );
 }
 
-function buildRecentAllocation(
-  created: Alocacao,
-  form: typeof initialAlocacao,
-  referenceData: ReferenceData,
-): Alocacao {
+function readErrorMessage(error: unknown) {
+  if (error instanceof ApiError) {
+    return error.message;
+  }
+  return "Nao foi possivel falar com a API. Confira se o backend esta em execucao e tente novamente.";
+}
+
+function buildRecentAllocation(created: Alocacao, form: typeof initialAlocacao, referenceData: ReferenceData): Alocacao {
   const turma = referenceData.turmas.find((item) => item.id === form.turma_id);
   const titular = referenceData.professores.find((item) => item.id === form.professor_titular_id);
-  const substituto = referenceData.professores.find(
-    (item) => item.id === form.professor_substituto_id,
-  );
+  const substituto = referenceData.professores.find((item) => item.id === form.professor_substituto_id);
 
   return {
     ...created,
@@ -953,16 +841,37 @@ function buildRecentAllocation(
     turno: created.turno ?? form.turno,
     professor_titular_id: created.professor_titular_id ?? form.professor_titular_id,
     professor_titular_nome: created.professor_titular_nome || titular?.nome || "Professor titular",
-    professor_substituto_id:
-      created.professor_substituto_id ??
-      (form.professor_substituto_id ? form.professor_substituto_id : null),
-    professor_substituto_nome:
-      created.professor_substituto_nome ??
-      (form.professor_substituto_id ? substituto?.nome || null : null),
+    professor_substituto_id: created.professor_substituto_id ?? (form.professor_substituto_id ? form.professor_substituto_id : null),
+    professor_substituto_nome: created.professor_substituto_nome ?? (form.professor_substituto_id ? substituto?.nome || null : null),
     forcada: created.forcada ?? form.override,
-    justificativa_override:
-      created.justificativa_override ?? (form.override ? form.justificativa_override : null),
+    justificativa_override: created.justificativa_override ?? (form.override ? form.justificativa_override : null),
   };
+}
+
+function readActionContext(searchParams: URLSearchParams): ActionContext {
+  const action = searchParams.get("action");
+  const allowedActions: ActionMode[] = ["alocar", "substituir", "override", "remover"];
+  return {
+    action: allowedActions.includes(action as ActionMode) ? (action as ActionMode) : null,
+    alocacaoId: parseNumericParam(searchParams.get("alocacaoId")),
+    turmaId: parseNumericParam(searchParams.get("turmaId")),
+    titularId: parseNumericParam(searchParams.get("titularId")),
+    substitutoId: parseNumericParam(searchParams.get("substitutoId")),
+    data: searchParams.get("data") ?? "",
+    turno: isTurno(searchParams.get("turno")) ? (searchParams.get("turno") as Turno) : "",
+  };
+}
+
+function parseNumericParam(value: string | null) {
+  if (!value) {
+    return null;
+  }
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+function isTurno(value: string | null): value is Turno {
+  return value === "manha" || value === "tarde" || value === "noite";
 }
 
 function actionTitle(action: ActionMode) {

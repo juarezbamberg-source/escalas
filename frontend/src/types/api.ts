@@ -110,16 +110,6 @@ export type CalendarioItem = {
   status_visual: StatusVisual;
 };
 
-export type CargaProfessorItem = {
-  professor_id: number;
-  professor_nome: string;
-  horas: number;
-  alocacoes: number;
-  manha: number;
-  tarde: number;
-  noite: number;
-};
-
 export type ApiErrorPayload = {
   detail?: string;
 };

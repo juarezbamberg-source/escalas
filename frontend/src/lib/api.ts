@@ -4,7 +4,6 @@ import type {
   AlocacaoBulkDeleteResponse,
   AlocacaoTurmaPeriodoItem,
   ApiErrorPayload,
-  CargaProfessorItem,
   CalendarioItem,
   Professor,
   Turma,
@@ -103,19 +102,9 @@ export const api = {
     override: boolean;
     justificativa_override: string | null;
     confirmar: boolean;
-  }) =>
-    request<AlocacaoBulkCreateResponse>("/alocacoes/recorrente", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    }),
-  listCargaProfessores: () => request<CargaProfessorItem[]>("/professores/carga"),
+  }) => request<AlocacaoBulkCreateResponse>("/alocacoes/recorrente", { method: "POST", body: JSON.stringify(payload) }),
   deleteAlocacoesBulk: (payload: { alocacao_ids: number[]; confirmar: boolean }) =>
-    request<AlocacaoBulkDeleteResponse>("/alocacoes/remocao-lote", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    }),
+    request<AlocacaoBulkDeleteResponse>("/alocacoes/remocao-lote", { method: "POST", body: JSON.stringify(payload) }),
   deleteAlocacao: (alocacaoId: number, confirmar = true) =>
-    request<void>(`/alocacoes/${alocacaoId}?confirmar=${confirmar ? "true" : "false"}`, {
-      method: "DELETE",
-    }),
+    request<void>(`/alocacoes/${alocacaoId}?confirmar=${confirmar ? "true" : "false"}`, { method: "DELETE" }),
 };
