@@ -76,73 +76,27 @@ describe("AppRoutes", () => {
       "fetch",
       vi.fn((input: RequestInfo | URL) => {
         const url = String(input);
-        if (url.includes("/alocacoes?turno=manha")) {
+        if (url.includes("/professores/carga")) {
           return Promise.resolve(
             new Response(
               JSON.stringify([
                 {
-                  id: 1,
-                  turma_id: 1,
-                  turma_codigo: "7074D",
-                  uc_id: 1,
-                  uc_codigo: "UC1",
-                  uc_nome: "UC 1",
-                  data: "2026-03-16",
-                  turno: "manha",
-                  professor_titular_id: 1,
-                  professor_titular_nome: "Maria",
-                  professor_substituto_id: null,
-                  professor_substituto_nome: null,
-                  forcada: false,
-                  justificativa_override: null,
+                  professor_id: 1,
+                  professor_nome: "Maria",
+                  horas: 6,
+                  alocacoes: 2,
+                  manha: 3,
+                  tarde: 3,
+                  noite: 0,
                 },
-              ]),
-            ),
-          );
-        }
-        if (url.includes("/alocacoes?turno=tarde")) {
-          return Promise.resolve(
-            new Response(
-              JSON.stringify([
                 {
-                  id: 2,
-                  turma_id: 2,
-                  turma_codigo: "8080N",
-                  uc_id: 1,
-                  uc_codigo: "UC1",
-                  uc_nome: "UC 1",
-                  data: "2026-03-16",
-                  turno: "tarde",
-                  professor_titular_id: 1,
-                  professor_titular_nome: "Maria",
-                  professor_substituto_id: null,
-                  professor_substituto_nome: null,
-                  forcada: false,
-                  justificativa_override: null,
-                },
-              ]),
-            ),
-          );
-        }
-        if (url.includes("/alocacoes?turno=noite")) {
-          return Promise.resolve(
-            new Response(
-              JSON.stringify([
-                {
-                  id: 3,
-                  turma_id: 3,
-                  turma_codigo: "9090X",
-                  uc_id: 1,
-                  uc_codigo: "UC1",
-                  uc_nome: "UC 1",
-                  data: "2026-03-16",
-                  turno: "noite",
-                  professor_titular_id: 2,
-                  professor_titular_nome: "Joao",
-                  professor_substituto_id: null,
-                  professor_substituto_nome: null,
-                  forcada: false,
-                  justificativa_override: null,
+                  professor_id: 2,
+                  professor_nome: "Joao",
+                  horas: 3,
+                  alocacoes: 1,
+                  manha: 0,
+                  tarde: 0,
+                  noite: 3,
                 },
               ]),
             ),
@@ -156,16 +110,23 @@ describe("AppRoutes", () => {
 
     await userEvent.click(screen.getByRole("link", { name: /abrir dashboard de graficos/i }));
 
-    expect(await screen.findByRole("heading", { name: /total de horas por professor/i })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: /total de horas por professor/i }),
+    ).toBeInTheDocument();
     const chart = screen.getByRole("img", { name: /grafico de total de horas por professor/i });
     expect(chart).toBeInTheDocument();
     expect(within(chart).getByText("Maria")).toBeInTheDocument();
     expect(within(chart).getByText("Joao")).toBeInTheDocument();
-    expect(within(chart).getByText(/2 alocacao\(oes\) • Manha 3h • Tarde 3h • Noite 0h/i)).toBeInTheDocument();
+    expect(
+      within(chart).getByText(/2 alocacao\(oes\) • Manha 3h • Tarde 3h • Noite 0h/i),
+    ).toBeInTheDocument();
   });
 
   it("exibe falha visivel quando a API esta indisponivel", async () => {
-    vi.stubGlobal("fetch", vi.fn(() => Promise.reject(new Error("network down"))));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => Promise.reject(new Error("network down"))),
+    );
 
     renderApp("/escala");
 
