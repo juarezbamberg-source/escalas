@@ -2,7 +2,11 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models import UnidadeCurricular
-from app.schemas.unidade_curricular import UnidadeCurricularCreate, UnidadeCurricularRead
+from app.schemas.unidade_curricular import (
+    UnidadeCurricularCreate,
+    UnidadeCurricularRead,
+    UnidadeCurricularUpdate,
+)
 from app.services.errors import ConflitoDeNegocioError, EntidadeNaoEncontradaError
 
 
@@ -18,7 +22,24 @@ def criar_uc(db: Session, payload: UnidadeCurricularCreate) -> UnidadeCurricular
         db.commit()
     except IntegrityError as exc:
         db.rollback()
-        raise ConflitoDeNegocioError("Ja existe uma UC com esse codigo.") from exc
+        raise ConflitoDeNegocioError("Ja existe uma unidade curricular com esse codigo.") from exc
+    db.refresh(uc)
+    return UnidadeCurricularRead.model_validate(uc)
+
+
+def atualizar_uc(db: Session, uc_id: int, payload: UnidadeCurricularUpdate) -> UnidadeCurricularRead:
+    """Atualizacao parcial de unidade curricular (Onda 4 - PATCH)."""
+    uc = db.get(UnidadeCurricular, uc_id)
+    if not uc:
+        raise EntidadeNaoEncontradaError("Unidade curricular nao encontrada.")
+    dados = payload.model_dump(exclude_unset=True)
+    for campo, valor in dados.items():
+        setattr(uc, campo, valor)
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise ConflitoDeNegocioError("Ja existe uma unidade curricular com esse codigo.") from exc
     db.refresh(uc)
     return UnidadeCurricularRead.model_validate(uc)
 
@@ -26,10 +47,10 @@ def criar_uc(db: Session, payload: UnidadeCurricularCreate) -> UnidadeCurricular
 def excluir_uc(db: Session, uc_id: int) -> None:
     uc = db.get(UnidadeCurricular, uc_id)
     if not uc:
-        raise EntidadeNaoEncontradaError("UC nao encontrada.")
+        raise EntidadeNaoEncontradaError("Unidade curricular nao encontrada.")
     try:
         db.delete(uc)
         db.commit()
     except IntegrityError as exc:
         db.rollback()
-        raise ConflitoDeNegocioError("Nao e possivel excluir UC vinculada a turmas ou alocacoes existentes.") from exc
+        raise ConflitoDeNegocioError("Nao e possivel excluir unidade curricular vinculada a turmas.") from exc

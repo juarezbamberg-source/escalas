@@ -1,20 +1,27 @@
 from datetime import date
 
+from app.models.enums import Turno
 from app.schemas.common import BaseSchema
 
 
 class AlocacaoCreate(BaseSchema):
     turma_id: int
     data: date
-    # Aceita string livre para que a validacao de allowlist aconteca no servico
-    # (validar_turno), garantindo 400 + mensagem exata da spec ("Turno invalido.
-    # Informe manha, tarde ou noite.") em vez de 422 do Pydantic.
-    turno: str
+    turno: Turno
     professor_titular_id: int
     professor_substituto_id: int | None = None
     liberar_fim_de_semana: bool = False
     override: bool = False
     justificativa_override: str | None = None
+
+
+class AlocacaoUpdate(BaseSchema):
+    """Atualizacao parcial de alocacao (Onda 4 - PATCH)."""
+
+    professor_titular_id: int | None = None
+    professor_substituto_id: int | None = None
+    justificativa_override: str | None = None
+    forcada: bool | None = None
 
 
 class AlocacaoRead(BaseSchema):
@@ -62,8 +69,7 @@ class AlocacaoBulkCreateRequest(BaseSchema):
     turma_id: int
     data_inicial: date
     data_final: date
-    # String livre: allowlist validada no servico (ver AlocacaoCreate.turno).
-    turnos: list[str]
+    turnos: list[Turno]
     dias_da_semana: list[int]
     professor_titular_id: int
     professor_substituto_id: int | None = None

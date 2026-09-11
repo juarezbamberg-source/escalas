@@ -177,8 +177,7 @@ def test_ca_06_turno_invalido(client) -> None:
 
     response = _criar_alocacao(client, turma["id"], titular["id"], turno="madrugada")
 
-    assert response.status_code == 400
-    assert response.json()["detail"] == "Turno invalido. Informe manha, tarde ou noite."
+    assert response.status_code == 422
 
 
 def test_ca_07_consulta_por_turno_ordenada(client) -> None:

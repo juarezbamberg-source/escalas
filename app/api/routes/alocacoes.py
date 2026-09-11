@@ -12,10 +12,10 @@ from app.schemas.alocacao import (
     AlocacaoCreate,
     AlocacaoRead,
     AlocacaoTurmaPeriodoItem,
+    AlocacaoUpdate,
     CalendarioItem,
 )
 from app.services import alocacoes as alocacoes_service
-
 
 router = APIRouter()
 
@@ -70,6 +70,12 @@ def delete_alocacoes_bulk(
     db: Session = Depends(get_db),
 ) -> AlocacaoBulkDeleteResponse:
     return alocacoes_service.excluir_alocacoes_em_lote(db, payload)
+
+
+@router.patch("/{alocacao_id}", response_model=AlocacaoRead)
+def atualizar_alocacao(alocacao_id: int, payload: AlocacaoUpdate, db: Session = Depends(get_db)):
+    """Atualizacao parcial de alocacao (Onda 4 - PATCH)."""
+    return alocacoes_service.atualizar_alocacao(db, alocacao_id, payload)
 
 
 @router.delete("/{alocacao_id}", status_code=status.HTTP_204_NO_CONTENT, response_class=Response)

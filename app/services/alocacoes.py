@@ -7,15 +7,16 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.models import Alocacao, Contratacao, Professor, Turma, Turno
 from app.schemas.alocacao import (
-    AlocacaoBulkDeleteItem,
-    AlocacaoBulkDeleteRequest,
-    AlocacaoBulkDeleteResponse,
     AlocacaoBulkCreateItem,
     AlocacaoBulkCreateRequest,
     AlocacaoBulkCreateResponse,
+    AlocacaoBulkDeleteItem,
+    AlocacaoBulkDeleteRequest,
+    AlocacaoBulkDeleteResponse,
     AlocacaoCreate,
     AlocacaoRead,
     AlocacaoTurmaPeriodoItem,
+    AlocacaoUpdate,
     CalendarioItem,
 )
 from app.services.errors import ConflitoDeNegocioError, EntidadeNaoEncontradaError, ValidacaoDeNegocioError
@@ -643,3 +644,29 @@ def _calcular_pascoa(ano: int) -> date:
     mes = (h + l - 7 * m + 114) // 31
     dia = ((h + l - 7 * m + 114) % 31) + 1
     return date(ano, mes, dia)
+
+
+def atualizar_alocacao(db: Session, alocacao_id: int, payload: AlocacaoUpdate) -> AlocacaoRead:
+    """Atualizacao parcial de alocacao (Onda 4 - PATCH)."""
+    alocacao = db.get(Alocacao, alocacao_id)
+    if not alocacao:
+        raise EntidadeNaoEncontradaError("Alocacao nao encontrada.")
+    dados = payload.model_dump(exclude_unset=True)
+    if "professor_titular_id" in dados:
+        alocacao.professor_titular_id = dados.pop("professor_titular_id")
+    if "professor_substituto_id" in dados:
+        alocacao.professor_substituto_id = dados.pop("professor_substituto_id")
+    if "justificativa_override" in dados:
+        alocacao.justificativa_override = (dados.pop("justificativa_override") or "").strip() or None
+    if "forcada" in dados:
+        alocacao.forcada = dados.pop("forcada")
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise ConflitoDeNegocioError("Nao foi possivel atualizar a alocacao por violacao de integridade.") from exc
+    alocacao = db.scalar(
+        _base_query().where(Alocacao.id == alocacao_id).execution_options(populate_existing=True)
+    )
+    assert alocacao is not None
+    return _to_read_model(alocacao)

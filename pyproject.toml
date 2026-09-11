@@ -10,19 +10,24 @@ dependencies = [
     "sqlalchemy",
     "pydantic-settings",
     "alembic",
+    "pyjwt",
 ]
+
 [project.optional-dependencies]
 dev = [
     "httpx",
     "pytest",
     "pytest-cov",
 ]
+
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
+
 [tool.setuptools.packages.find]
 include = ["app*"]
 exclude = ["openspec*", "tests*"]
+
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
