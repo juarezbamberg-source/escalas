@@ -6,9 +6,12 @@
 - [x] Adicionar tipo e método de API para carga.
 - [x] Migrar dashboard e atualizar testes de agregação/erro.
 - [x] Extrair helpers de erro e contexto de ação.
+- [x] Rodar pytest, lint, Vitest e build após cada fatia.
+- [x] Atualizar README e registrar verificação SDD após CI verde.
+
+## Pendências para a próxima etapa
+
 - [ ] Extrair tipos workbench e hooks de dados, filtros, persistência, remoção e período.
 - [ ] Extrair WeeklyMatrix e ActionStack preservando CSS e acessibilidade.
 - [ ] Extrair os cinco formulários de cadastro/alocação.
 - [ ] Reescrever EscalaPage e CadastrosPage como orquestradores.
-- [ ] Rodar pytest, lint, Vitest e build após cada fatia.
-- [ ] Atualizar README e arquivar a change somente após CI verde.

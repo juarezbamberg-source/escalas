@@ -114,9 +114,27 @@ npm run build
 
 A meta de cobertura backend é 70% (`pytest-cov`); a validação pós-merge da Onda 2 atingiu 92,67%. O CI executa backend e frontend em todo pull request e push para `main`. Warnings de `react-hooks/exhaustive-deps` não bloqueiam o lint; devem ser tratados durante a refatoração da Onda 3.
 
-### Próxima mudança — Onda 3
+### Onda 3 — etapa entregue
 
-A proposta está em `openspec/changes/refactor-onda-3/`. O foco é decompor `EscalaPage.tsx` e `CadastrosPage.tsx`, centralizar helpers e criar o endpoint dedicado `GET /professores/carga`. A implementação deve seguir as fatias e tarefas da change, começando pelo backend e sem alterar regras funcionais existentes.
+A primeira etapa da Onda 3 foi integrada à `main` e está documentada em `openspec/changes/refactor-onda-3/verification.md`.
+
+#### Entregue
+
+- `GET /professores/carga`, com agregação de titular e substituto no backend;
+- dashboard consumindo o endpoint dedicado;
+- helpers compartilhados de erro e contexto de ação;
+- testes de backend e frontend atualizados;
+- correção de seletores ambíguos no drill-down;
+- CI verde após o merge.
+
+#### Validação
+
+- Backend: 26/26 testes, cobertura 93,09%;
+- Frontend: 40/40 testes e build aprovado;
+- ESLint: 0 erros e 6 warnings não bloqueantes;
+- Alembic: 0002 (head).
+
+A decomposição estrutural completa de `EscalaPage.tsx` e `CadastrosPage.tsx` permanece pendente e não deve ser considerada entregue nesta etapa. As tarefas continuam em `openspec/changes/refactor-onda-3/tasks.md`.
 
 
 - `app/`: API, modelos, schemas e regras de negocio
