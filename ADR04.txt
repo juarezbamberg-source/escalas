@@ -1,0 +1,24 @@
+---
+adr_number: "004"
+status: aceito
+created: 2026-09-11
+supersedes: ""
+superseded_by: ""
+---
+# ADR 004: Autenticação simplificada por professor_id (JWT)
+
+## Contexto
+O sistema passou a exigir controle de acesso para uso multiusuário, mas o contexto acadêmico não possui ainda um provedor de identidade (senha ou SSO). O usuário operador é um professor já cadastrado na base.
+
+## Alternativas Consideradas
+- **Autenticação por senha:** prós — padrão de mercado; contras — exige gestão de credenciais e fluxo de recuperação ainda não disponíveis.
+- **SSO (Google/Institucional):** prós — zero gestão de senha; contras — depende de integração externa e configuração de domínio.
+- **Login simplificado por professor_id + JWT:** prós — desbloqueia o controle de acesso imediatamente, sem dependências externas; contras — não é seguro para produção aberta.
+
+## Decisão
+Implementar autenticação JWT com o fluxo simplificado em que o operador informa o `professor_id` no `POST /auth/login`. O token é gerado com `sub` = id do professor e expiração configurável. A função `get_current_professor` pode ser adicionada a qualquer rota que exija autenticação.
+
+## Consequências
+- **Positivas:** controle de acesso desbloqueado; token JWT padrão e auditável; base pronta para evoluir para senha/SSO.
+- **Negativas:** o login não valida credencial — qualquer pessoa com o id de um professor obtém token (aceitável apenas para o contexto acadêmico atual).
+- **Neutras:** a chave secreta (SECRET_KEY) deve ter no mínimo 32 bytes em produção; recomenda-se substituir este fluxo por senha/SSO antes de exposição pública.
