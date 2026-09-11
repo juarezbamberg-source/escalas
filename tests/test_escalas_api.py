@@ -614,3 +614,70 @@ def test_calendario_nao_antecipa_fins_de_semana_antes_da_primeira_alocacao_da_tu
     assert response.status_code == 200, response.text
     body = [item for item in response.json() if item["turma_codigo"] == "670007074E"]
     assert [item["data"] for item in body] == ["2026-09-25", "2026-09-26", "2026-09-27", "2026-09-28"]
+
+
+def test_carga_professores_agrega_titular_substituto_e_turnos(client) -> None:
+    uc = _criar_uc(client, "UC-CARGA")
+    titular = _criar_professor(client, "Ana Carga")
+    substituto = _criar_professor(client, "Bruno Carga")
+    turma_manha = _criar_turma(client, "CARGA-M", uc["id"], turno_padrao="manha")
+    turma_noite = _criar_turma(client, "CARGA-N", uc["id"], turno_padrao="noite")
+
+    _criar_alocacao(
+        client,
+        turma_manha["id"],
+        titular["id"],
+        data="2026-03-17",
+        turno="manha",
+        professor_substituto_id=substituto["id"],
+    )
+    _criar_alocacao(
+        client,
+        turma_noite["id"],
+        titular["id"],
+        data="2026-03-18",
+        turno="noite",
+    )
+
+    response = client.get("/professores/carga")
+
+    assert response.status_code == 200
+    por_nome = {item["professor_nome"]: item for item in response.json()}
+    assert por_nome["Ana Carga"] == {
+        "professor_id": titular["id"],
+        "professor_nome": "Ana Carga",
+        "horas": 6,
+        "alocacoes": 2,
+        "manha": 3,
+        "tarde": 0,
+        "noite": 3,
+    }
+    assert por_nome["Bruno Carga"]["horas"] == 3
+    assert por_nome["Bruno Carga"]["alocacoes"] == 1
+    assert por_nome["Bruno Carga"]["manha"] == 3
+
+
+def test_carga_professores_inclui_professor_sem_alocacao(client) -> None:
+    _criar_professor(client, "Professor Sem Carga")
+
+    response = client.get("/professores/carga")
+
+    assert response.status_code == 200
+    assert response.json() == [
+        {
+            "professor_id": 1,
+            "professor_nome": "Professor Sem Carga",
+            "horas": 0,
+            "alocacoes": 0,
+            "manha": 0,
+            "tarde": 0,
+            "noite": 0,
+        }
+    ]
+
+
+def test_carga_professores_retorna_lista_vazia_sem_professores(client) -> None:
+    response = client.get("/professores/carga")
+
+    assert response.status_code == 200
+    assert response.json() == []
