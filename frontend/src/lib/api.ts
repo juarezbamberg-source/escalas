@@ -32,12 +32,12 @@ export function buildApiUrl(path: string) {
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const token = getStoredToken();
   const response = await fetch(buildApiUrl(path), {
+    ...init,
     headers: {
       "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...init?.headers,
     },
-    ...init,
   });
 
   if (!response.ok) {
