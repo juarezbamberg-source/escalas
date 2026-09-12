@@ -10,6 +10,8 @@ import type {
   Turma,
   UnidadeCurricular,
 } from "../types/api";
+import { getStoredToken } from "./auth";
+import type { UsuarioAtual } from "./auth";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api";
 
@@ -28,10 +30,12 @@ export function buildApiUrl(path: string) {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = getStoredToken();
   const response = await fetch(buildApiUrl(path), {
     headers: {
       "Content-Type": "application/json",
-      ...(init?.headers ?? {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...init?.headers,
     },
     ...init,
   });
@@ -41,14 +45,27 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new ApiError(body?.detail ?? "Nao foi possivel concluir a operacao.", response.status);
   }
 
-  if (response.status === 204) {
-    return undefined as T;
-  }
-
+  if (response.status === 204) return undefined as T;
   return (await response.json()) as T;
 }
 
+function bearer(token: string): RequestInit {
+  return { headers: { Authorization: `Bearer ${token}` } };
+}
+
 export const api = {
+  login: (username: string, senha: string) =>
+    request<{ access_token: string; token_type: string; trocar_senha: boolean }>("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ username, senha }),
+    }),
+  me: (token: string) => request<UsuarioAtual>("/auth/me", bearer(token)),
+  trocarSenha: (token: string, senhaAtual: string, novaSenha: string) =>
+    request<{ usuario: UsuarioAtual }>("/auth/trocar-senha", {
+      ...bearer(token),
+      method: "POST",
+      body: JSON.stringify({ senha_atual: senhaAtual, nova_senha: novaSenha }),
+    }),
   health: () => request<{ status: string }>("/health"),
   listProfessores: () => request<Professor[]>("/professores"),
   createProfessor: (payload: { nome: string; contratacao: string }) =>
@@ -67,12 +84,7 @@ export const api = {
         ...datas.map((data) => ["datas", data]),
       ]).toString()}`,
     ),
-  listAlocacoesTurmaPeriodo: (payload: {
-    turma_id: number;
-    data_inicial: string;
-    data_final: string;
-    turno?: string;
-  }) =>
+  listAlocacoesTurmaPeriodo: (payload: { turma_id: number; data_inicial: string; data_final: string; turno?: string }) =>
     request<AlocacaoTurmaPeriodoItem[]>(
       `/alocacoes/turma-periodo?${new URLSearchParams([
         ["turma_id", String(payload.turma_id)],
@@ -103,19 +115,10 @@ export const api = {
     override: boolean;
     justificativa_override: string | null;
     confirmar: boolean;
-  }) =>
-    request<AlocacaoBulkCreateResponse>("/alocacoes/recorrente", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    }),
+  }) => request<AlocacaoBulkCreateResponse>("/alocacoes/recorrente", { method: "POST", body: JSON.stringify(payload) }),
   listCargaProfessores: () => request<CargaProfessorItem[]>("/professores/carga"),
   deleteAlocacoesBulk: (payload: { alocacao_ids: number[]; confirmar: boolean }) =>
-    request<AlocacaoBulkDeleteResponse>("/alocacoes/remocao-lote", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    }),
+    request<AlocacaoBulkDeleteResponse>("/alocacoes/remocao-lote", { method: "POST", body: JSON.stringify(payload) }),
   deleteAlocacao: (alocacaoId: number, confirmar = true) =>
-    request<void>(`/alocacoes/${alocacaoId}?confirmar=${confirmar ? "true" : "false"}`, {
-      method: "DELETE",
-    }),
+    request<void>(`/alocacoes/${alocacaoId}?confirmar=${confirmar ? "true" : "false"}`, { method: "DELETE" }),
 };

@@ -1,3 +1,4 @@
+export type Funcao = "admin" | "coordenacao" | "professor";
 export type Turno = "manha" | "tarde" | "noite";
 export type Contratacao = "PF" | "CLT" | "PJ";
 export type StatusVisual = "VERDE" | "VERMELHO" | "AMARELO" | "ROXO";
