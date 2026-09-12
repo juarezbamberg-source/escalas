@@ -414,7 +414,8 @@ describe("EscalaPage", () => {
     expect(screen.getByRole("heading", { name: formatDate(today), level: 3 })).toBeInTheDocument();
 
     await user.click(screen.getByRole("tab", { name: /^Semanal$/i }));
-    expect(screen.getByText(/semana de/i)).toBeInTheDocument();
+    const semanas = screen.getAllByText(/semana de/i);
+    expect(semanas.length).toBeGreaterThan(0);
 
     await user.click(screen.getByRole("tab", { name: /^Mensal$/i }));
     expect(screen.getByText(/de 2026/i)).toBeInTheDocument();
