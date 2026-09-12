@@ -11,3 +11,9 @@ class Contratacao(str, Enum):
     PF = "PF"
     CLT = "CLT"
     PJ = "PJ"
+
+
+class Funcao(str, Enum):
+    ADMIN = "admin"
+    COORDENACAO = "coordenacao"
+    PROFESSOR = "professor"

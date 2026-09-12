@@ -3,7 +3,9 @@ from datetime import date
 from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy.orm import Session
 
+from app.core.security import require_funcao, require_usuario_habilitado
 from app.db.session import get_db
+from app.models import Funcao, Usuario
 from app.schemas.alocacao import (
     AlocacaoBulkCreateRequest,
     AlocacaoBulkCreateResponse,
@@ -17,7 +19,7 @@ from app.schemas.alocacao import (
 )
 from app.services import alocacoes as alocacoes_service
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_usuario_habilitado)])
 
 
 @router.get("", response_model=list[AlocacaoRead])
@@ -52,7 +54,11 @@ def list_alocacoes_por_turma_e_periodo(
 
 
 @router.post("", response_model=AlocacaoRead, status_code=status.HTTP_201_CREATED)
-def create_alocacao(payload: AlocacaoCreate, db: Session = Depends(get_db)) -> AlocacaoRead:
+def create_alocacao(
+    payload: AlocacaoCreate,
+    db: Session = Depends(get_db),
+    _: Usuario = Depends(require_funcao(Funcao.ADMIN, Funcao.COORDENACAO)),
+) -> AlocacaoRead:
     return alocacoes_service.criar_alocacao(db, payload)
 
 
@@ -60,6 +66,7 @@ def create_alocacao(payload: AlocacaoCreate, db: Session = Depends(get_db)) -> A
 def create_alocacoes_recorrentes(
     payload: AlocacaoBulkCreateRequest,
     db: Session = Depends(get_db),
+    _: Usuario = Depends(require_funcao(Funcao.ADMIN, Funcao.COORDENACAO)),
 ) -> AlocacaoBulkCreateResponse:
     return alocacoes_service.criar_alocacoes_recorrentes(db, payload)
 
@@ -68,12 +75,18 @@ def create_alocacoes_recorrentes(
 def delete_alocacoes_bulk(
     payload: AlocacaoBulkDeleteRequest,
     db: Session = Depends(get_db),
+    _: Usuario = Depends(require_funcao(Funcao.ADMIN, Funcao.COORDENACAO)),
 ) -> AlocacaoBulkDeleteResponse:
     return alocacoes_service.excluir_alocacoes_em_lote(db, payload)
 
 
 @router.patch("/{alocacao_id}", response_model=AlocacaoRead)
-def atualizar_alocacao(alocacao_id: int, payload: AlocacaoUpdate, db: Session = Depends(get_db)):
+def atualizar_alocacao(
+    alocacao_id: int,
+    payload: AlocacaoUpdate,
+    db: Session = Depends(get_db),
+    _: Usuario = Depends(require_funcao(Funcao.ADMIN, Funcao.COORDENACAO)),
+):
     """Atualizacao parcial de alocacao (Onda 4 - PATCH)."""
     return alocacoes_service.atualizar_alocacao(db, alocacao_id, payload)
 
@@ -83,6 +96,7 @@ def delete_alocacao(
     alocacao_id: int,
     confirmar: bool = Query(False),
     db: Session = Depends(get_db),
+    _: Usuario = Depends(require_funcao(Funcao.ADMIN, Funcao.COORDENACAO)),
 ) -> Response:
     alocacoes_service.excluir_alocacao(db, alocacao_id, confirmar=confirmar)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

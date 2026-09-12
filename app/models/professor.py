@@ -24,3 +24,4 @@ class Professor(Base):
         foreign_keys="Alocacao.professor_substituto_id",
         passive_deletes=True,
     )
+    usuario = relationship("Usuario", back_populates="professor", uselist=False)
