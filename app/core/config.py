@@ -17,6 +17,11 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 60
     algoritmo_jwt: str = "HS256"
 
+    # --- Seed do super admin (Onda 5) ---
+    admin_username: str | None = None
+    admin_senha_inicial: str | None = None
+    admin_nome: str = "Administrador"
+
     # --- CORS (Onda 4) ---
     cors_origins: str = "http://localhost:5173"
 
