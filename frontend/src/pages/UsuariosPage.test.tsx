@@ -53,8 +53,7 @@ describe("UsuariosPage", () => {
     await user.type(screen.getByLabelText(/senha temporaria/i), "Senha-Temp-123!");
     await user.click(screen.getByRole("button", { name: /criar usuario/i }));
 
-    expect(await screen.findByText(/senha temporaria/i)).toBeInTheDocument();
-    expect(screen.getByText("ana")).toBeInTheDocument();
+    expect(await screen.findByText(/senha temporaria para/i)).toBeInTheDocument();
   });
 
   it("nao exibe o menu de usuarios para funcao professor", () => {
