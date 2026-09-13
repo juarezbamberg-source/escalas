@@ -15,6 +15,13 @@ import type { UsuarioAtual } from "./auth";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api";
 
+export type UsuarioListResponse = {
+  items: UsuarioAtual[];
+  total: number;
+};
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api";
+
 export class ApiError extends Error {
   status: number;
 
@@ -117,6 +124,22 @@ export const api = {
     confirmar: boolean;
   }) => request<AlocacaoBulkCreateResponse>("/alocacoes/recorrente", { method: "POST", body: JSON.stringify(payload) }),
   listCargaProfessores: () => request<CargaProfessorItem[]>("/professores/carga"),
+  listUsuarios: (filtros: { funcao?: string; ativo?: boolean; busca?: string } = {}) => {
+    const params = new URLSearchParams();
+    if (filtros.funcao) params.set("funcao", filtros.funcao);
+    if (filtros.ativo !== undefined) params.set("ativo", String(filtros.ativo));
+    if (filtros.busca) params.set("busca", filtros.busca);
+    const query = params.toString();
+    return request<UsuarioListResponse>(`/usuarios${query ? `?${query}` : ""}`);
+  },
+  createUsuario: (payload: { nome: string; username: string; funcao: string; senha_temporaria: string }) =>
+    request<UsuarioAtual>("/usuarios", { method: "POST", body: JSON.stringify(payload) }),
+  updateUsuario: (
+    usuarioId: number,
+    payload: { nome?: string; funcao?: string; ativo?: boolean; nova_senha_temporaria?: string },
+  ) => request<UsuarioAtual>(`/usuarios/${usuarioId}`, { method: "PATCH", body: JSON.stringify(payload) }),
+  desativarUsuario: (usuarioId: number) =>
+    request<UsuarioAtual>(`/usuarios/${usuarioId}`, { method: "DELETE" }),
   deleteAlocacoesBulk: (payload: { alocacao_ids: number[]; confirmar: boolean }) =>
     request<AlocacaoBulkDeleteResponse>("/alocacoes/remocao-lote", { method: "POST", body: JSON.stringify(payload) }),
   deleteAlocacao: (alocacaoId: number, confirmar = true) =>
