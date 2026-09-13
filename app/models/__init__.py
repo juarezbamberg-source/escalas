@@ -1,4 +1,5 @@
 from app.models.alocacao import Alocacao
+from app.models.atribuicao import Atribuicao
 from app.models.base import Base
 from app.models.enums import Contratacao, Funcao, Turno
 from app.models.professor import Professor
@@ -8,6 +9,7 @@ from app.models.usuario import Usuario
 
 __all__ = [
     "Alocacao",
+    "Atribuicao",
     "Base",
     "Contratacao",
     "Funcao",
