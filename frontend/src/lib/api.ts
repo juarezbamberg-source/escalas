@@ -5,7 +5,9 @@ import type {
   AlocacaoTurmaPeriodoItem,
   ApiErrorPayload,
   CargaProfessorItem,
+  CargaPrevistaItem,
   CalendarioItem,
+  Atribuicao,
   Professor,
   Turma,
   UnidadeCurricular,
@@ -121,7 +123,40 @@ export const api = {
     justificativa_override: string | null;
     confirmar: boolean;
   }) => request<AlocacaoBulkCreateResponse>("/alocacoes/recorrente", { method: "POST", body: JSON.stringify(payload) }),
-  listCargaProfessores: () => request<CargaProfessorItem[]>("/professores/carga"),
+  listCargaProfessores: (tipo: "prevista" | "realizada" = "realizada", vigenteEm?: string) => {
+    const params = new URLSearchParams([["tipo", tipo]]);
+    if (vigenteEm) params.set("vigente_em", vigenteEm);
+    return request<(CargaProfessorItem | CargaPrevistaItem)[]>(`/professores/carga?${params.toString()}`);
+  },
+  listAtribuicoes: (filtros: { professor_id?: number; turma_id?: number; vigente_em?: string } = {}) => {
+    const params = new URLSearchParams();
+    if (filtros.professor_id) params.set("professor_id", String(filtros.professor_id));
+    if (filtros.turma_id) params.set("turma_id", String(filtros.turma_id));
+    if (filtros.vigente_em) params.set("vigente_em", filtros.vigente_em);
+    const query = params.toString();
+    return request<Atribuicao[]>(`/atribuicoes${query ? `?${query}` : ""}`);
+  },
+  listAtribuicoesDoProfessor: (professorId: number, vigenteEm?: string) => {
+    const query = vigenteEm ? `?vigente_em=${vigenteEm}` : "";
+    return request<Atribuicao[]>(`/professores/${professorId}/atribuicoes${query}`);
+  },
+  createAtribuicao: (payload: {
+    professor_id: number;
+    turma_id: number;
+    uc_id: number;
+    data_inicio: string;
+    data_fim: string;
+    professor_substituto_id: number | null;
+    justificativa_retroativa: string | null;
+  }) => request<Atribuicao>("/atribuicoes", { method: "POST", body: JSON.stringify(payload) }),
+  updateAtribuicao: (
+    atribuicaoId: number,
+    payload: { data_inicio?: string; data_fim?: string; professor_substituto_id?: number | null },
+  ) => request<Atribuicao>(`/atribuicoes/${atribuicaoId}`, { method: "PATCH", body: JSON.stringify(payload) }),
+  deleteAtribuicao: (atribuicaoId: number, confirmar = true) =>
+    request<void>(`/atribuicoes/${atribuicaoId}?confirmar=${confirmar ? "true" : "false"}`, {
+      method: "DELETE",
+    }),
   listUsuarios: (filtros: { funcao?: string; ativo?: boolean; busca?: string } = {}) => {
     const params = new URLSearchParams();
     if (filtros.funcao) params.set("funcao", filtros.funcao);

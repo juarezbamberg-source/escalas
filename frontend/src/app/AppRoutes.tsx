@@ -8,6 +8,8 @@ import { HomePage } from "../pages/HomePage";
 import { LoginPage } from "../pages/LoginPage";
 import { TrocarSenhaPage } from "../pages/TrocarSenhaPage";
 import { UsuariosPage } from "../pages/UsuariosPage";
+import { AtribuicoesPage } from "../pages/AtribuicoesPage";
+import { MinhasAtribuicoesPage } from "../pages/MinhasAtribuicoesPage";
 import { clearSession, getStoredUser } from "../lib/auth";
 import { useAppStatus } from "./AppStatusContext";
 
@@ -19,6 +21,13 @@ const navItems = [
 ];
 
 const adminNavItems = [{ to: "/usuarios", label: "Usuarios" }];
+
+const coordenacaoNavItems = [
+  { to: "/usuarios", label: "Usuarios" },
+  { to: "/atribuicoes", label: "Atribuicoes" },
+];
+
+const professorNavItems = [{ to: "/minhas-atribuicoes", label: "Minhas Atribuicoes" }];
 
 function ProtectedRoutes() {
   const location = useLocation();
@@ -53,11 +62,13 @@ function AppShell() {
         <nav className="top-nav" aria-label="Navegacao principal">
           {navItems.map((item) => <NavLink key={item.to} to={item.to} end={item.end} className={({ isActive }) => `top-nav__link${isActive ? " top-nav__link--active" : ""}`}>{item.label}</NavLink>)}
           {usuario?.funcao === "admin" && adminNavItems.map((item) => <NavLink key={item.to} to={item.to} className={({ isActive }) => `top-nav__link${isActive ? " top-nav__link--active" : ""}`}>{item.label}</NavLink>)}
+          {usuario?.funcao === "coordenacao" && coordenacaoNavItems.map((item) => <NavLink key={item.to} to={item.to} className={({ isActive }) => `top-nav__link${isActive ? " top-nav__link--active" : ""}`}>{item.label}</NavLink>)}
+          {usuario?.funcao === "professor" && professorNavItems.map((item) => <NavLink key={item.to} to={item.to} className={({ isActive }) => `top-nav__link${isActive ? " top-nav__link--active" : ""}`}>{item.label}</NavLink>)}
           <button className="ghost-button" type="button" onClick={sair}>Sair</button>
         </nav>
       </header>
       <StatusBanner />
-      <main className="page-frame"><Routes><Route path="/" element={<HomePage />} /><Route path="/escala" element={<EscalaPage />} /><Route path="/cadastros" element={<CadastrosPage />} /><Route path="/dashboard" element={<DashboardPage />} /><Route path="/usuarios" element={<UsuariosPage />} /></Routes></main>
+      <main className="page-frame"><Routes><Route path="/" element={<HomePage />} /><Route path="/escala" element={<EscalaPage />} /><Route path="/cadastros" element={<CadastrosPage />} /><Route path="/dashboard" element={<DashboardPage />} /><Route path="/usuarios" element={<UsuariosPage />} /><Route path="/atribuicoes" element={<AtribuicoesPage />} /><Route path="/minhas-atribuicoes" element={<MinhasAtribuicoesPage />} /></Routes></main>
     </div>
   );
 }
