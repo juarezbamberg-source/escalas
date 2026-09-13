@@ -5,7 +5,7 @@ from sqlalchemy import Select, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
-from app.models import Alocacao, Contratacao, Professor, Turma, Turno
+from app.models import Alocacao, Atribuicao, Contratacao, Professor, Turma, Turno
 from app.schemas.alocacao import (
     AlocacaoBulkCreateItem,
     AlocacaoBulkCreateRequest,
@@ -469,7 +469,49 @@ def _validar_dependencias_da_alocacao(db: Session, payload: AlocacaoCreate) -> t
     if professor_substituto:
         _validar_limite_pf(db, professor_substituto, turma, payload.data)
 
+    _validar_atribuicao_para_alocacao_nova(db, payload, turma.uc_id)
+
     return turno_validado, turma, professor_titular, professor_substituto
+
+
+def _validar_atribuicao_para_alocacao_nova(db: Session, payload: AlocacaoCreate, uc_id: int) -> None:
+    """Onda 6 (RF-02/RF-03): alocação nova exige atribuição ativa na data.
+
+    Alocações com data passada (histórico) não exigem atribuição retroativa,
+    conforme ADR-006.
+    """
+    if payload.data < date.today():
+        return
+
+    atribuicao_titular = db.scalar(
+        select(Atribuicao).where(
+            Atribuicao.professor_id == payload.professor_titular_id,
+            Atribuicao.turma_id == payload.turma_id,
+            Atribuicao.uc_id == uc_id,
+            Atribuicao.data_inicio <= payload.data,
+            Atribuicao.data_fim >= payload.data,
+        )
+    )
+    if atribuicao_titular is None:
+        raise ValidacaoDeNegocioError(
+            "Professor titular sem atribuicao ativa para esta turma/UC na data. "
+            "Crie a atribuicao antes de lancar a alocacao."
+        )
+
+    if payload.professor_substituto_id is not None:
+        atribuicao_substituto = db.scalar(
+            select(Atribuicao).where(
+                Atribuicao.professor_substituto_id == payload.professor_substituto_id,
+                Atribuicao.turma_id == payload.turma_id,
+                Atribuicao.uc_id == uc_id,
+                Atribuicao.data_inicio <= payload.data,
+                Atribuicao.data_fim >= payload.data,
+            )
+        )
+        if atribuicao_substituto is None:
+            raise ValidacaoDeNegocioError(
+                "Professor substituto sem atribuicao como substituto para esta turma/UC na data."
+            )
 
 
 def _gerar_candidatos_recorrentes(
