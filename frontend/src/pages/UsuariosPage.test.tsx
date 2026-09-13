@@ -38,7 +38,7 @@ describe("UsuariosPage", () => {
   it("lista usuarios e cria um novo com senha temporaria", async () => {
     const user = userEvent.setup();
     stubApi({
-      "/usuarios?": {
+      "/usuarios": {
         items: [usuarioAdmin],
         total: 1,
       },
@@ -68,7 +68,7 @@ describe("UsuariosPage", () => {
       professor_id: null,
     });
     stubApi({});
-    renderApp("/");
+    renderApp("/", false);
     expect(screen.queryByRole("link", { name: /usuarios/i })).not.toBeInTheDocument();
   });
 });
