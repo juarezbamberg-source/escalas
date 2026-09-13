@@ -25,6 +25,31 @@ def _criar_turma(client, codigo: str, uc_id: int, turno_padrao: str = "manha") -
     return response.json()
 
 
+def _criar_atribuicao(
+    client,
+    professor_id: int,
+    turma_id: int,
+    uc_id: int,
+    data_inicio: str = "2026-01-01",
+    data_fim: str = "2027-12-31",
+    professor_substituto_id: int | None = None,
+) -> dict:
+    response = client.post(
+        "/atribuicoes",
+        json={
+            "professor_id": professor_id,
+            "turma_id": turma_id,
+            "uc_id": uc_id,
+            "data_inicio": data_inicio,
+            "data_fim": data_fim,
+            "professor_substituto_id": professor_substituto_id,
+            "justificativa_retroativa": "Atribuicao de teste abrangente",
+        },
+    )
+    assert response.status_code == 201, response.text
+    return response.json()
+
+
 def _criar_alocacao(
     client,
     turma_id: int,
@@ -424,6 +449,10 @@ def test_ca_09_limite_pf(client) -> None:
     turma_b = _criar_turma(client, "7074", uc["id"])
     turma_c = _criar_turma(client, "7075", uc["id"])
 
+    _criar_atribuicao(client, professor_pf["id"], turma_a["id"], uc["id"])
+    _criar_atribuicao(client, professor_pf["id"], turma_b["id"], uc["id"])
+    _criar_atribuicao(client, professor_clt["id"], turma_c["id"], uc["id"])
+
     for data in _datas_letivas(2026, 100, "2026-03-10"):
         resposta = _criar_alocacao(client, turma_a["id"], professor_pf["id"], data=data)
         assert resposta.status_code == 201, resposta.text
@@ -595,6 +624,7 @@ def test_calendario_nao_antecipa_fins_de_semana_antes_da_primeira_alocacao_da_tu
     uc = _criar_uc(client, "UC6")
     titular = _criar_professor(client, "Juarez")
     turma = _criar_turma(client, "670007074E", uc["id"])
+    _criar_atribuicao(client, titular["id"], turma["id"], uc["id"])
 
     assert _criar_alocacao(client, turma["id"], titular["id"], data="2026-09-25").status_code == 201
     assert _criar_alocacao(client, turma["id"], titular["id"], data="2026-09-28", liberar_fim_de_semana=False).status_code == 201
