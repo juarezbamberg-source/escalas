@@ -15,3 +15,17 @@ class CargaProfessorItem(BaseSchema):
     manha: int
     tarde: int
     noite: int
+
+
+class CargaPrevistaItem(BaseSchema):
+    """Carga prevista de um professor (Onda 6, RF-05).
+
+    Soma da carga cheia das UCs atribuidas na vigencia, sem rateio.
+    Pagamento em R$ permanece fora do sistema.
+    """
+
+    professor_id: int
+    professor_nome: str
+    horas: int
+    atribuicoes: int
+    turmas: int
