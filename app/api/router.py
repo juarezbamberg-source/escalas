@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.api.routes.alocacoes import router as alocacoes_router
+from app.api.routes.atribuicoes import router as atribuicoes_router
 from app.api.routes.auth import router as auth_router
 from app.api.routes.carga import router as carga_router
 from app.api.routes.health import router as health_router
@@ -20,4 +21,5 @@ api_router.include_router(unidades_curriculares_router, prefix="/ucs", tags=["uc
 api_router.include_router(usuarios_router, prefix="/usuarios", tags=["usuarios"])
 api_router.include_router(turmas_router, prefix="/turmas", tags=["turmas"])
 api_router.include_router(alocacoes_router, prefix="/alocacoes", tags=["alocacoes"])
+api_router.include_router(atribuicoes_router, prefix="/atribuicoes", tags=["atribuicoes"])
 api_router.include_router(carga_router, tags=["carga"])
