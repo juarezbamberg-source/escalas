@@ -1,10 +1,12 @@
 from collections import defaultdict
 
-from sqlalchemy import or_, select
-from sqlalchemy.orm import Session
+from datetime import date
 
-from app.models import Alocacao, Professor
-from app.schemas.carga import CargaProfessorItem
+from sqlalchemy import or_, select
+from sqlalchemy.orm import Session, joinedload
+
+from app.models import Alocacao, Atribuicao, Professor
+from app.schemas.carga import CargaPrevistaItem, CargaProfessorItem
 
 HORAS_POR_ALOCACAO = 3
 
@@ -52,6 +54,53 @@ def calcular_carga_por_professor(db: Session) -> list[CargaProfessorItem]:
                 manha=sum(1 for a in alocacoes_do_professor if a.turno.value == "manha") * HORAS_POR_ALOCACAO,
                 tarde=sum(1 for a in alocacoes_do_professor if a.turno.value == "tarde") * HORAS_POR_ALOCACAO,
                 noite=sum(1 for a in alocacoes_do_professor if a.turno.value == "noite") * HORAS_POR_ALOCACAO,
+            )
+        )
+    return itens
+
+
+def calcular_carga_prevista_por_professor(
+    db: Session, vigente_em: date | None = None
+) -> list[CargaPrevistaItem]:
+    """Carga prevista por professor (Onda 6, RF-05).
+
+    Soma da carga cheia das UCs das atribuicoes na vigencia, sem rateio.
+    Por padrao considera a data de hoje; informe vigente_em para simular
+    outra data de recorte.
+    """
+    recorte = vigente_em or date.today()
+    professores = db.scalars(select(Professor).order_by(Professor.nome.asc())).all()
+    if not professores:
+        return []
+
+    atribuicoes = db.scalars(
+        select(Atribuicao)
+        .options(joinedload(Atribuicao.unidade_curricular))
+        .where(
+            Atribuicao.professor_id.in_([professor.id for professor in professores]),
+            Atribuicao.data_inicio <= recorte,
+            Atribuicao.data_fim >= recorte,
+        )
+    ).all()
+
+    por_professor: dict[int, list[Atribuicao]] = defaultdict(list)
+    for atribuicao in atribuicoes:
+        por_professor[atribuicao.professor_id].append(atribuicao)
+
+    itens: list[CargaPrevistaItem] = []
+    for professor in professores:
+        atribuicoes_do_professor = por_professor.get(professor.id, [])
+        horas = sum(
+            atribuicao.unidade_curricular.carga_horaria
+            for atribuicao in atribuicoes_do_professor
+        )
+        itens.append(
+            CargaPrevistaItem(
+                professor_id=professor.id,
+                professor_nome=professor.nome,
+                horas=horas,
+                atribuicoes=len(atribuicoes_do_professor),
+                turmas=len({atribuicao.turma_id for atribuicao in atribuicoes_do_professor}),
             )
         )
     return itens
