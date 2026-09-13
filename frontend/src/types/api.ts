@@ -121,6 +121,30 @@ export type CargaProfessorItem = {
   noite: number;
 };
 
+export type CargaPrevistaItem = {
+  professor_id: number;
+  professor_nome: string;
+  horas: number;
+  atribuicoes: number;
+  turmas: number;
+};
+
+export type Atribuicao = {
+  id: number;
+  professor_id: number;
+  professor_nome: string;
+  turma_id: number;
+  turma_codigo: string;
+  uc_id: number;
+  uc_codigo: string;
+  uc_nome: string;
+  data_inicio: string;
+  data_fim: string;
+  professor_substituto_id: number | null;
+  professor_substituto_nome: string | null;
+  justificativa_retroativa: string | null;
+};
+
 export type ApiErrorPayload = {
   detail?: string;
 };
