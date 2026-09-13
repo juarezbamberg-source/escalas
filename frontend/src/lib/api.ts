@@ -20,8 +20,6 @@ export type UsuarioListResponse = {
   total: number;
 };
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api";
-
 export class ApiError extends Error {
   status: number;
 
