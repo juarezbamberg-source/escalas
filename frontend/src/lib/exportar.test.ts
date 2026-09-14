@@ -23,13 +23,24 @@ const linhas: LinhaEscala[] = [
 
 const recorte = { turno: "manha", dataInicio: "2026-03-16", dataFim: "2026-03-17" };
 
-const jsPdfMock = vi.hoisted(() => ({
-  criar: vi.fn().mockImplementation(() => ({
-    setFontSize: vi.fn(),
-    text: vi.fn(),
-    save: vi.fn(),
-  })),
-}));
+const jsPdfMock = vi.hoisted(() => {
+  const chamadas: unknown[] = [];
+  const instancias: {
+    setFontSize: ReturnType<typeof vi.fn>;
+    text: ReturnType<typeof vi.fn>;
+    save: ReturnType<typeof vi.fn>;
+  }[] = [];
+  class JsPDFMock {
+    setFontSize = vi.fn();
+    text = vi.fn();
+    save = vi.fn();
+    constructor(options?: unknown) {
+      chamadas.push(options);
+      instancias.push(this);
+    }
+  }
+  return { chamadas, instancias, JsPDFMock };
+});
 
 const autoTableMock = vi.hoisted(() => ({ aplicar: vi.fn() }));
 
@@ -42,7 +53,7 @@ const xlsxMock = vi.hoisted(() => ({
   writeFile: vi.fn(),
 }));
 
-vi.mock("jspdf", () => ({ default: jsPdfMock.criar, jsPDF: jsPdfMock.criar }));
+vi.mock("jspdf", () => ({ default: jsPdfMock.JsPDFMock, jsPDF: jsPdfMock.JsPDFMock }));
 vi.mock("jspdf-autotable", () => ({ default: autoTableMock.aplicar }));
 vi.mock("xlsx", () => xlsxMock);
 
@@ -54,9 +65,9 @@ describe("exportar escala", () => {
   it("gera PDF em paisagem com tabela via autotable", () => {
     exportarEscalaPdf(linhas, recorte);
 
-    expect(jsPdfMock.criar).toHaveBeenCalledWith({ orientation: "landscape" });
+    expect(jsPdfMock.chamadas).toContainEqual({ orientation: "landscape" });
     expect(autoTableMock.aplicar).toHaveBeenCalledTimes(1);
-    expect(jsPdfMock.criar().save).toHaveBeenCalledWith("escala-manha.pdf");
+    expect(jsPdfMock.instancias[0]?.save).toHaveBeenCalledWith("escala-manha.pdf");
   });
 
   it("gera planilha Excel com cabecalho e linhas", () => {
