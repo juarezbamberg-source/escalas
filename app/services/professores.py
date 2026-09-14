@@ -6,8 +6,12 @@ from app.schemas.professor import ProfessorCreate, ProfessorRead, ProfessorUpdat
 from app.services.errors import ConflitoDeNegocioError, EntidadeNaoEncontradaError
 
 
-def listar_professores(db: Session) -> list[ProfessorRead]:
-    professores = db.query(Professor).order_by(Professor.nome.asc()).all()
+def listar_professores(db: Session, incluir_inativos: bool = False) -> list[ProfessorRead]:
+    """Onda 7: retorna apenas ativos por padrao; incluir_inativos=true traz todos."""
+    query = db.query(Professor).order_by(Professor.nome.asc())
+    if not incluir_inativos:
+        query = query.filter(Professor.ativo.is_(True))
+    professores = query.all()
     return [ProfessorRead.model_validate(professor) for professor in professores]
 
 

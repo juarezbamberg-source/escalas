@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.core.security import require_funcao, require_usuario_habilitado
@@ -11,8 +11,12 @@ router = APIRouter(dependencies=[Depends(require_usuario_habilitado)])
 
 
 @router.get("", response_model=list[ProfessorRead])
-def listar_professores(db: Session = Depends(get_db)):
-    return professores_service.listar_professores(db)
+def listar_professores(
+    incluir_inativos: bool = Query(default=False),
+    db: Session = Depends(get_db),
+):
+    """Onda 7: apenas ativos por padrao; incluir_inativos=true traz todos."""
+    return professores_service.listar_professores(db, incluir_inativos=incluir_inativos)
 
 
 @router.post("", response_model=ProfessorRead, status_code=status.HTTP_201_CREATED)

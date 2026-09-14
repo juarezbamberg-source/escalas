@@ -1,4 +1,4 @@
-from sqlalchemy import Enum, String
+from sqlalchemy import Boolean, Enum, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
@@ -11,6 +11,7 @@ class Professor(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     nome: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
     contratacao: Mapped[Contratacao] = mapped_column(Enum(Contratacao), nullable=False)
+    ativo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="1")
 
     alocacoes_titulares = relationship(
         "Alocacao",

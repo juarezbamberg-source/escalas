@@ -10,8 +10,12 @@ from app.schemas.unidade_curricular import (
 from app.services.errors import ConflitoDeNegocioError, EntidadeNaoEncontradaError
 
 
-def listar_ucs(db: Session) -> list[UnidadeCurricularRead]:
-    ucs = db.query(UnidadeCurricular).order_by(UnidadeCurricular.codigo.asc()).all()
+def listar_ucs(db: Session, incluir_inativos: bool = False) -> list[UnidadeCurricularRead]:
+    """Onda 7: retorna apenas ativas por padrao; incluir_inativos=true traz todas."""
+    query = db.query(UnidadeCurricular).order_by(UnidadeCurricular.codigo.asc())
+    if not incluir_inativos:
+        query = query.filter(UnidadeCurricular.ativo.is_(True))
+    ucs = query.all()
     return [UnidadeCurricularRead.model_validate(uc) for uc in ucs]
 
 
