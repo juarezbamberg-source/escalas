@@ -1383,3 +1383,17 @@ th {
   border: 1px solid rgba(234, 90, 90, 0.4);
   color: #ff9d9d;
 }
+
+
+.dashboard-charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  margin-top: 18px;
+}
+
+.mini-chart h4 {
+  margin: 0 0 10px;
+  font-size: 0.95rem;
+  color: var(--text-muted, #9aa4b2);
+}

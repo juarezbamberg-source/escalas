@@ -68,6 +68,26 @@ def _criar_alocacao(client, turma_id: int, titular_id: int, data: str = "2026-03
     return response.json()
 
 
+def _criar_alocacao_com_substituto(
+    client, turma_id: int, titular_id: int, substituto_id: int, data: str
+) -> dict:
+    response = client.post(
+        "/alocacoes",
+        json={
+            "turma_id": turma_id,
+            "data": data,
+            "turno": "manha",
+            "professor_titular_id": titular_id,
+            "professor_substituto_id": substituto_id,
+            "liberar_fim_de_semana": False,
+            "override": False,
+            "justificativa_override": None,
+        },
+    )
+    assert response.status_code == 201, response.text
+    return response.json()
+
+
 def _criar_atribuicao(client, professor_id: int, turma_id: int, uc_id: int) -> dict:
     response = client.post(
         "/atribuicoes",
@@ -198,3 +218,49 @@ def test_professor_recebe_403_em_atribuicoes_de_terceiros(client) -> None:
 
     filtrada = client.get(f"/atribuicoes?professor_id={prof_b['id']}", headers=headers)
     assert filtrada.status_code == 403
+
+
+# --- Dashboard resumo (Onda 8, RF-04) ---
+
+
+def test_resumo_dashboard_padrao_mes_corrente(client) -> None:
+    uc = _criar_uc(client, "UC1")
+    turma = _criar_turma(client, "T1", uc["id"])
+    prof = _criar_professor(client, "Prof Resumo")
+    _criar_alocacao(client, turma["id"], prof["id"], data="2026-09-10")
+    _criar_alocacao(client, turma["id"], prof["id"], data="2026-09-11")
+
+    resposta = client.get("/dashboard/resumo")
+    assert resposta.status_code == 200, resposta.text
+    corpo = resposta.json()
+    assert corpo["data_inicio"] == "2026-09-01"
+    assert corpo["data_fim"] == "2026-09-14"
+    assert corpo["total_alocacoes"] >= 2
+    assert corpo["total_substituicoes"] == 0
+    assert "manha" in corpo["alocacoes_por_turno"]
+    assert corpo["alocacoes_por_turma"][0]["turma_codigo"] == "T1"
+
+
+def test_resumo_dashboard_respeita_periodo_e_substituicoes(client) -> None:
+    uc = _criar_uc(client, "UC1")
+    turma = _criar_turma(client, "T1", uc["id"])
+    prof = _criar_professor(client, "Prof Resumo2")
+    subst = _criar_professor(client, "Prof Subst")
+    _criar_alocacao(client, turma["id"], prof["id"], data="2026-03-16")
+    _criar_alocacao_com_substituto(client, turma["id"], prof["id"], subst["id"], data="2026-03-17")
+
+    resposta = client.get("/dashboard/resumo?data_inicio=2026-03-01&data_fim=2026-03-31")
+    assert resposta.status_code == 200, resposta.text
+    corpo = resposta.json()
+    assert corpo["data_inicio"] == "2026-03-01"
+    assert corpo["data_fim"] == "2026-03-31"
+    assert corpo["total_alocacoes"] == 2
+    assert corpo["total_substituicoes"] == 1
+    assert corpo["alocacoes_por_turno"] == {"manha": 2}
+
+
+def test_professor_recebe_403_no_resumo_dashboard(client) -> None:
+    headers = _criar_usuario_funcao(client, Funcao.PROFESSOR, "prof_dash")
+
+    resposta = client.get("/dashboard/resumo", headers=headers)
+    assert resposta.status_code == 403

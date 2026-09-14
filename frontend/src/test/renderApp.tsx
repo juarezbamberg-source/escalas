@@ -5,9 +5,13 @@ import { AppRoutes } from "../app/AppRoutes";
 import { AppStatusProvider } from "../app/AppStatusContext";
 import { storeSession } from "../lib/auth";
 
-export function renderApp(initialEntry = "/", authenticated = true) {
+export function renderApp(
+  initialEntry = "/",
+  authenticated = true,
+  user?: Parameters<typeof storeSession>[1],
+) {
   if (authenticated) {
-    storeSession("token-de-teste", {
+    storeSession("token-de-teste", user ?? {
     id: 1,
     nome: "Administrador de Teste",
     username: "admin_fixture",
