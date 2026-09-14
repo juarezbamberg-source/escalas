@@ -71,6 +71,20 @@ def require_funcao(*funcoes: Funcao | str) -> Callable:
     return verificar_funcao
 
 
+def bloquear_professor(usuario: Usuario = Depends(get_current_usuario)) -> Usuario:
+    """Onda 8 (ADR-008): bloqueia acesso da função professor a rotas operacionais.
+
+    Usada em leituras de escala e cadastros: o professor consulta suas
+    informações via /atribuicoes e carga própria, não pela visão completa.
+    """
+    if usuario.funcao == Funcao.PROFESSOR:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Usuario sem permissao para esta acao.",
+        )
+    return usuario
+
+
 def gerar_hash_senha(senha: str) -> str:
     """Gera hash bcrypt para uma senha em texto puro."""
     return bcrypt.hashpw(senha.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")

@@ -1,13 +1,13 @@
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
-from app.core.security import require_funcao, require_usuario_habilitado
+from app.core.security import bloquear_professor, require_funcao, require_usuario_habilitado
 from app.db.session import get_db
 from app.models import Funcao, Usuario
 from app.schemas.turma import TurmaCreate, TurmaRead, TurmaUpdate
 from app.services import turmas as turmas_service
 
-router = APIRouter(dependencies=[Depends(require_usuario_habilitado)])
+router = APIRouter(dependencies=[Depends(require_usuario_habilitado), Depends(bloquear_professor)])
 
 
 @router.get("", response_model=list[TurmaRead])
