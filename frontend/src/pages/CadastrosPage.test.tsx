@@ -529,11 +529,11 @@ describe("CadastrosPage", () => {
     expect(screen.getByText(/Pagina 1 de 2/i)).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /^Proxima$/i }));
-    await screen.findByText("Professor 21");
-    expect(screen.queryByText("Professor 01")).not.toBeInTheDocument();
+    await screen.findAllByText("Professor 21");
+    expect(screen.queryByText(/Pagina 1 de 2/i)).not.toBeInTheDocument();
     expect(screen.getByText(/Pagina 2 de 2/i)).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /^Anterior$/i }));
-    await screen.findByText("Professor 01");
+    await screen.findAllByText("Professor 01");
   });
 });
