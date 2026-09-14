@@ -23,36 +23,45 @@ const linhas: LinhaEscala[] = [
 
 const recorte = { turno: "manha", dataInicio: "2026-03-16", dataFim: "2026-03-17" };
 
-describe("exportar escala", () => {
-  it("gera PDF com as linhas ordenadas por data", () => {
-    const criar = vi.fn().mockReturnValue({
-      setFontSize: vi.fn(),
-      text: vi.fn(),
-      save: vi.fn(),
-    });
-    vi.doMock("jspdf", () => ({ jsPDF: criar }));
+const jsPdfMock = vi.hoisted(() => ({
+  criar: vi.fn().mockImplementation(() => ({
+    setFontSize: vi.fn(),
+    text: vi.fn(),
+    save: vi.fn(),
+  })),
+}));
 
+const autoTableMock = vi.hoisted(() => ({ aplicar: vi.fn() }));
+
+const xlsxMock = vi.hoisted(() => ({
+  aoa_to_sheet: vi.fn().mockReturnValue({}),
+  book_new: vi.fn().mockReturnValue({}),
+  book_append_sheet: vi.fn(),
+  writeFile: vi.fn(),
+}));
+
+vi.mock("jspdf", () => ({ jsPDF: jsPdfMock.criar }));
+vi.mock("jspdf-autotable", () => ({ default: autoTableMock.aplicar }));
+vi.mock("xlsx", () => xlsxMock);
+
+describe("exportar escala", () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("gera PDF em paisagem com tabela via autotable", () => {
     exportarEscalaPdf(linhas, recorte);
 
-    expect(criar).toHaveBeenCalledWith({ orientation: "landscape" });
+    expect(jsPdfMock.criar).toHaveBeenCalledWith({ orientation: "landscape" });
+    expect(autoTableMock.aplicar).toHaveBeenCalledTimes(1);
+    expect(jsPdfMock.criar().save).toHaveBeenCalledWith("escala-manha.pdf");
   });
 
   it("gera planilha Excel com cabecalho e linhas", () => {
-    const escrever = vi.spyOn(
-      { writeFile: () => undefined },
-      "writeFile",
-    );
-    const planilha = {
-      aoa_to_sheet: vi.fn().mockReturnValue({}),
-      book_new: vi.fn().mockReturnValue({}),
-      book_append_sheet: vi.fn(),
-      writeFile: escrever,
-    };
-    vi.doMock("xlsx", () => planilha);
-
     exportarEscalaExcel(linhas, recorte);
 
-    expect(planilha.aoa_to_sheet).toHaveBeenCalled();
-    expect(planilha.book_append_sheet).toHaveBeenCalled();
+    expect(xlsxMock.aoa_to_sheet).toHaveBeenCalledTimes(1);
+    expect(xlsxMock.book_append_sheet).toHaveBeenCalledTimes(1);
+    expect(xlsxMock.writeFile).toHaveBeenCalledWith(expect.anything(), "escala-manha.xlsx");
   });
 });
