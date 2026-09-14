@@ -34,13 +34,15 @@ const jsPdfMock = vi.hoisted(() => ({
 const autoTableMock = vi.hoisted(() => ({ aplicar: vi.fn() }));
 
 const xlsxMock = vi.hoisted(() => ({
-  aoa_to_sheet: vi.fn().mockReturnValue({}),
-  book_new: vi.fn().mockReturnValue({}),
-  book_append_sheet: vi.fn(),
+  utils: {
+    aoa_to_sheet: vi.fn().mockReturnValue({}),
+    book_new: vi.fn().mockReturnValue({}),
+    book_append_sheet: vi.fn(),
+  },
   writeFile: vi.fn(),
 }));
 
-vi.mock("jspdf", () => ({ jsPDF: jsPdfMock.criar }));
+vi.mock("jspdf", () => ({ default: jsPdfMock.criar, jsPDF: jsPdfMock.criar }));
 vi.mock("jspdf-autotable", () => ({ default: autoTableMock.aplicar }));
 vi.mock("xlsx", () => xlsxMock);
 
@@ -60,8 +62,8 @@ describe("exportar escala", () => {
   it("gera planilha Excel com cabecalho e linhas", () => {
     exportarEscalaExcel(linhas, recorte);
 
-    expect(xlsxMock.aoa_to_sheet).toHaveBeenCalledTimes(1);
-    expect(xlsxMock.book_append_sheet).toHaveBeenCalledTimes(1);
+    expect(xlsxMock.utils.aoa_to_sheet).toHaveBeenCalledTimes(1);
+    expect(xlsxMock.utils.book_append_sheet).toHaveBeenCalledTimes(1);
     expect(xlsxMock.writeFile).toHaveBeenCalledWith(expect.anything(), "escala-manha.xlsx");
   });
 });
