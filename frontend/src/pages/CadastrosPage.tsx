@@ -23,6 +23,8 @@ type ReferenceData = {
   turmas: Turma[];
 };
 
+type FiltroStatus = "ativos" | "inativos" | "todos";
+
 type BulkRecurringForm = {
   turma_id: number;
   data_inicial: string;
@@ -101,13 +103,11 @@ export function CadastrosPage() {
   const [alocacaoForm, setAlocacaoForm] = useState(initialAlocacao);
   const [bulkForm, setBulkForm] = useState<BulkRecurringForm>(initialBulkRecurring);
   const [appliedPreset, setAppliedPreset] = useState("");
+  const [filtroStatus, setFiltroStatus] = useState<FiltroStatus>("ativos");
+  const [busca, setBusca] = useState("");
   const { startLoading, stopLoading, showError, showSuccess } = useAppStatus();
 
   const actionContext = readActionContext(searchParams);
-
-  useEffect(() => {
-    void refreshReferences();
-  }, []);
 
   useEffect(() => {
     const presetKey = searchParams.toString();
@@ -161,12 +161,21 @@ export function CadastrosPage() {
   async function refreshReferences() {
     startLoading();
     try {
+      const incluirInativos = filtroStatus !== "ativos";
       const [professores, ucs, turmas] = await Promise.all([
-        api.listProfessores(),
-        api.listUcs(),
-        api.listTurmas(),
+        api.listProfessores(incluirInativos),
+        api.listUcs(incluirInativos),
+        api.listTurmas(incluirInativos),
       ]);
-      setReferenceData({ professores, ucs, turmas });
+      const visiveis = <T extends { ativo: boolean }>(itens: T[]): T[] =>
+        filtroStatus === "todos"
+          ? itens
+          : itens.filter((item) => (filtroStatus === "ativos" ? item.ativo : !item.ativo));
+      setReferenceData({
+        professores: visiveis(professores),
+        ucs: visiveis(ucs),
+        turmas: visiveis(turmas),
+      });
       setTurmaForm((current) => ({ ...current, uc_id: current.uc_id || ucs[0]?.id || 0 }));
       setAlocacaoForm((current) => ({
         ...current,
@@ -184,6 +193,63 @@ export function CadastrosPage() {
       stopLoading();
     }
   }
+
+  useEffect(() => {
+    void refreshReferences();
+    // Onda 7: recarrega as listas quando o filtro de status muda.
+  }, [filtroStatus]);
+
+  async function alternarStatusProfessor(professor: Professor) {
+    startLoading();
+    try {
+      await api.updateProfessor(professor.id, { ativo: !professor.ativo });
+      await refreshReferences();
+      showSuccess(`Professor ${professor.ativo ? "desativado" : "reativado"}.`);
+    } catch (error) {
+      showError(readErrorMessage(error));
+    } finally {
+      stopLoading();
+    }
+  }
+
+  async function alternarStatusUc(uc: UnidadeCurricular) {
+    startLoading();
+    try {
+      await api.updateUc(uc.id, { ativo: !uc.ativo });
+      await refreshReferences();
+      showSuccess(`UC ${uc.ativo ? "desativada" : "reativada"}.`);
+    } catch (error) {
+      showError(readErrorMessage(error));
+    } finally {
+      stopLoading();
+    }
+  }
+
+  async function alternarStatusTurma(turma: Turma) {
+    startLoading();
+    try {
+      await api.updateTurma(turma.id, { ativo: !turma.ativo });
+      await refreshReferences();
+      showSuccess(`Turma ${turma.ativo ? "desativada" : "reativada"}.`);
+    } catch (error) {
+      showError(readErrorMessage(error));
+    } finally {
+      stopLoading();
+    }
+  }
+
+  const termoBusca = busca.trim().toLowerCase();
+  const professoresVisiveis = referenceData.professores.filter(
+    (professor) =>
+      !termoBusca ||
+      professor.nome.toLowerCase().includes(termoBusca),
+  );
+  const ucsVisiveis = referenceData.ucs.filter(
+    (uc) => !termoBusca || uc.codigo.toLowerCase().includes(termoBusca) || uc.nome.toLowerCase().includes(termoBusca),
+  );
+  const turmasVisiveis = referenceData.turmas.filter(
+    (turma) => !termoBusca || turma.codigo.toLowerCase().includes(termoBusca) || turma.nome.toLowerCase().includes(termoBusca),
+  );
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>, action: () => Promise<void>) {
     event.preventDefault();
@@ -279,6 +345,28 @@ export function CadastrosPage() {
           Cadastre professores, unidades curriculares, turmas, alocacoes isoladas e lancamentos
           recorrentes sem sair da aplicacao.
         </p>
+        <div className="cadastros-toolbar">
+          <div className="turno-tabs" role="tablist" aria-label="Filtro de status">
+            {(["ativos", "inativos", "todos"] as FiltroStatus[]).map((valor) => (
+              <button
+                key={valor}
+                type="button"
+                role="tab"
+                aria-selected={filtroStatus === valor}
+                className={`turno-tabs__button${filtroStatus === valor ? " turno-tabs__button--active" : ""}`}
+                onClick={() => setFiltroStatus(valor)}
+              >
+                {valor === "ativos" ? "Ativos" : valor === "inativos" ? "Inativos" : "Todos"}
+              </button>
+            ))}
+          </div>
+          <input
+            value={busca}
+            onChange={(event) => setBusca(event.target.value)}
+            placeholder="Buscar por nome ou codigo"
+            aria-label="Buscar por nome ou codigo"
+          />
+        </div>
       </SectionCard>
 
       {actionContext.action ? (
@@ -359,10 +447,18 @@ export function CadastrosPage() {
             </button>
           </form>
           <ul className="data-list">
-            {referenceData.professores.map((professor) => (
-              <li key={professor.id}>
+            {professoresVisiveis.map((professor) => (
+              <li key={professor.id} className={professor.ativo ? "" : "item-inativo"}>
                 <strong>{professor.nome}</strong>
                 <span>{professor.contratacao}</span>
+                {!professor.ativo && <span className="badge-inativo">Inativo</span>}
+                <button
+                  type="button"
+                  className="ghost-button"
+                  onClick={() => void alternarStatusProfessor(professor)}
+                >
+                  {professor.ativo ? "Desativar" : "Reativar"}
+                </button>
               </li>
             ))}
           </ul>
@@ -420,10 +516,18 @@ export function CadastrosPage() {
             </button>
           </form>
           <ul className="data-list">
-            {referenceData.ucs.map((uc) => (
-              <li key={uc.id}>
+            {ucsVisiveis.map((uc) => (
+              <li key={uc.id} className={uc.ativo ? "" : "item-inativo"}>
                 <strong>{uc.codigo}</strong>
                 <span>{uc.nome}</span>
+                {!uc.ativo && <span className="badge-inativo">Inativo</span>}
+                <button
+                  type="button"
+                  className="ghost-button"
+                  onClick={() => void alternarStatusUc(uc)}
+                >
+                  {uc.ativo ? "Desativar" : "Reativar"}
+                </button>
               </li>
             ))}
           </ul>
@@ -506,10 +610,18 @@ export function CadastrosPage() {
             </button>
           </form>
           <ul className="data-list">
-            {referenceData.turmas.map((turma) => (
-              <li key={turma.id}>
+            {turmasVisiveis.map((turma) => (
+              <li key={turma.id} className={turma.ativo ? "" : "item-inativo"}>
                 <strong>{turma.codigo}</strong>
                 <span>{turma.turno_padrao}</span>
+                {!turma.ativo && <span className="badge-inativo">Inativo</span>}
+                <button
+                  type="button"
+                  className="ghost-button"
+                  onClick={() => void alternarStatusTurma(turma)}
+                >
+                  {turma.ativo ? "Desativar" : "Reativar"}
+                </button>
               </li>
             ))}
           </ul>
