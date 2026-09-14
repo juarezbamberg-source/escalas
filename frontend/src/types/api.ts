@@ -1,4 +1,20 @@
 export type Funcao = "admin" | "coordenacao" | "professor";
+
+export type AlocacoesPorTurmaItem = {
+  turma_id: number;
+  turma_codigo: string;
+  turma_nome: string;
+  alocacoes: number;
+};
+
+export type DashboardResumo = {
+  data_inicio: string;
+  data_fim: string;
+  alocacoes_por_turno: Record<string, number>;
+  alocacoes_por_turma: AlocacoesPorTurmaItem[];
+  total_substituicoes: number;
+  total_alocacoes: number;
+};
 export type Turno = "manha" | "tarde" | "noite";
 export type Contratacao = "PF" | "CLT" | "PJ";
 export type StatusVisual = "VERDE" | "VERMELHO" | "AMARELO" | "ROXO";

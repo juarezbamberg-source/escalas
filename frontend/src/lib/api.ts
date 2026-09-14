@@ -6,6 +6,7 @@ import type {
   ApiErrorPayload,
   CargaProfessorItem,
   CargaPrevistaItem,
+  DashboardResumo,
   CalendarioItem,
   Atribuicao,
   Professor,
@@ -136,6 +137,13 @@ export const api = {
     const params = new URLSearchParams([["tipo", tipo]]);
     if (vigenteEm) params.set("vigente_em", vigenteEm);
     return request<(CargaProfessorItem | CargaPrevistaItem)[]>(`/professores/carga?${params.toString()}`);
+  },
+  dashboardResumo: (dataInicio?: string, dataFim?: string) => {
+    const params = new URLSearchParams();
+    if (dataInicio) params.set("data_inicio", dataInicio);
+    if (dataFim) params.set("data_fim", dataFim);
+    const query = params.toString();
+    return request<DashboardResumo>(`/dashboard/resumo${query ? `?${query}` : ""}`);
   },
   listAtribuicoes: (filtros: { professor_id?: number; turma_id?: number; vigente_em?: string } = {}) => {
     const params = new URLSearchParams();

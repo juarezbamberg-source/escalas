@@ -3,14 +3,18 @@ import { useEffect, useMemo, useState } from "react";
 import { useAppStatus } from "../app/AppStatusContext";
 import { SectionCard } from "../components/SectionCard";
 import { api, ApiError } from "../lib/api";
-import type { CargaPrevistaItem, CargaProfessorItem } from "../types/api";
+import { getStoredUser } from "../lib/auth";
+import type { CargaPrevistaItem, CargaProfessorItem, DashboardResumo } from "../types/api";
 
 type TipoCarga = "realizada" | "prevista";
 
 export function DashboardPage() {
+  const usuario = getStoredUser();
+  const ehProfessor = usuario?.funcao === "professor";
   const [tipo, setTipo] = useState<TipoCarga>("realizada");
   const [rowsRealizada, setRowsRealizada] = useState<CargaProfessorItem[]>([]);
   const [rowsPrevista, setRowsPrevista] = useState<CargaPrevistaItem[]>([]);
+  const [resumo, setResumo] = useState<DashboardResumo | null>(null);
   const [loading, setLoading] = useState(true);
   const { startLoading, stopLoading, showError, clearMessages } = useAppStatus();
 
@@ -44,6 +48,12 @@ export function DashboardPage() {
             );
           }
         }
+        if (!ehProfessor) {
+          const respostaResumo = await api.dashboardResumo();
+          if (active) {
+            setResumo(respostaResumo);
+          }
+        }
       } catch (error) {
         if (active) {
           showError(
@@ -53,6 +63,7 @@ export function DashboardPage() {
           );
           setRowsRealizada([]);
           setRowsPrevista([]);
+          setResumo(null);
         }
       } finally {
         if (active) {
@@ -66,7 +77,7 @@ export function DashboardPage() {
     return () => {
       active = false;
     };
-  }, [clearMessages, showError, startLoading, stopLoading, tipo]);
+  }, [clearMessages, ehProfessor, showError, startLoading, stopLoading, tipo]);
 
   const rowsPrevistas = tipo === "prevista";
   const rows = rowsPrevistas ? rowsPrevista : rowsRealizada;
@@ -76,10 +87,14 @@ export function DashboardPage() {
 
   return (
     <div className="page-stack">
-      <SectionCard eyebrow="Inteligencia operacional" title="Dashboard de graficos">
+      <SectionCard
+        eyebrow={ehProfessor ? "Meu painel" : "Inteligencia operacional"}
+        title={ehProfessor ? "Meu Dashboard" : "Dashboard de graficos"}
+      >
         <p>
-          Compare a carga prevista (atribuicoes com vigencia) e a carga realizada (alocacoes
-          lancadas) por professor.
+          {ehProfessor
+            ? "Acompanhe a sua carga realizada (alocacoes lancadas) e prevista (atribuicoes vigentes)."
+            : "Compare a carga prevista (atribuicoes com vigencia) e a carga realizada (alocacoes lancadas) por professor."}
         </p>
         <div className="turno-tabs" role="tablist" aria-label="Tipo de carga">
           <button
@@ -165,6 +180,83 @@ export function DashboardPage() {
           </div>
         ) : null}
       </SectionCard>
+
+      {!ehProfessor && resumo ? (
+        <SectionCard eyebrow="Operacao no periodo" title={`Resumo de ${resumo.data_inicio.split("-").reverse().join("/")} a ${resumo.data_fim.split("-").reverse().join("/")}`}>
+          <div className="dashboard-summary">
+            <article className="period-summary__card">
+              <strong>{resumo.total_alocacoes}</strong>
+              <p>alocacoes no periodo</p>
+            </article>
+            <article className="period-summary__card">
+              <strong>{resumo.total_substituicoes}</strong>
+              <p>substituicoes</p>
+            </article>
+            <article className="period-summary__card">
+              <strong>{resumo.alocacoes_por_turma.length}</strong>
+              <p>turmas com alocacao</p>
+            </article>
+          </div>
+          <div className="dashboard-charts">
+            <div className="mini-chart">
+              <h4>Alocacoes por turno</h4>
+              <div
+                className="hours-chart"
+                role="img"
+                aria-label="Grafico de alocacoes por turno"
+              >
+                {(["manha", "tarde", "noite"] as const).map((turno) => {
+                  const total = resumo.alocacoes_por_turno[turno] ?? 0;
+                  const max = Math.max(...Object.values(resumo.alocacoes_por_turno), 1);
+                  return (
+                    <article key={turno} className="hours-chart__row">
+                      <div className="hours-chart__header">
+                        <strong>{turno}</strong>
+                        <span>{total}</span>
+                      </div>
+                      <div className="hours-chart__bar-track" aria-hidden="true">
+                        <div
+                          className="hours-chart__bar-fill"
+                          style={{ width: `${Math.max((total / max) * 100, 8)}%` }}
+                        />
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="mini-chart">
+              <h4>Top turmas por alocacoes</h4>
+              <div
+                className="hours-chart"
+                role="img"
+                aria-label="Grafico de alocacoes por turma"
+              >
+                {resumo.alocacoes_por_turma.slice(0, 5).map((turma) => {
+                  const max = Math.max(
+                    ...resumo.alocacoes_por_turma.map((item) => item.alocacoes),
+                    1,
+                  );
+                  return (
+                    <article key={turma.turma_id} className="hours-chart__row">
+                      <div className="hours-chart__header">
+                        <strong>{turma.turma_codigo}</strong>
+                        <span>{turma.alocacoes}</span>
+                      </div>
+                      <div className="hours-chart__bar-track" aria-hidden="true">
+                        <div
+                          className="hours-chart__bar-fill"
+                          style={{ width: `${Math.max((turma.alocacoes / max) * 100, 8)}%` }}
+                        />
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </SectionCard>
+      ) : null}
     </div>
   );
 }
