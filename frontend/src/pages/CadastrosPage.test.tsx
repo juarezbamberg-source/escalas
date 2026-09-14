@@ -491,4 +491,52 @@ describe("CadastrosPage", () => {
     });
     expect(screen.getByText(/professor atualizado com sucesso/i)).toBeInTheDocument();
   });
+
+  it("pagina a lista de professores em blocos de 20", async () => {
+    const user = userEvent.setup();
+    const muitos = Array.from({ length: 25 }, (_, i) => ({
+      id: i + 1,
+      nome: `Professor ${String(i + 1).padStart(2, "0")}`,
+      contratacao: "CLT",
+      ativo: true,
+    }));
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        const method = init?.method ?? "GET";
+
+        if (method === "GET" && url.includes("/professores")) {
+          return Promise.resolve(new Response(JSON.stringify(muitos)));
+        }
+        return Promise.resolve(new Response(JSON.stringify([])));
+      }),
+    );
+
+    renderApp("/cadastros", true, {
+      id: 1,
+      nome: "Coordenador",
+      username: "coord",
+      funcao: "coordenacao",
+      ativo: true,
+      trocar_senha_no_proximo_acesso: false,
+      professor_id: null,
+    });
+
+    await screen.findAllByText("Professor 01");
+    const nomesNaLista = Array.from(document.querySelectorAll(".data-list li strong")).map(
+      (el) => el.textContent,
+    );
+    expect(nomesNaLista).not.toContain("Professor 21");
+    expect(screen.getByText(/Pagina 1 de 2/i)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /^Proxima$/i }));
+    await screen.findAllByText("Professor 21");
+    expect(screen.queryByText(/Pagina 1 de 2/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/Pagina 2 de 2/i)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /^Anterior$/i }));
+    await screen.findAllByText("Professor 01");
+  });
 });
