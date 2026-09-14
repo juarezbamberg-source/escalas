@@ -1,7 +1,6 @@
 import { screen, waitFor } from "@testing-library/react";
 
 import { renderApp } from "../test/renderApp";
-import { storeSession } from "../lib/auth";
 
 function mockFetchAdmin() {
   vi.stubGlobal(
@@ -67,15 +66,6 @@ describe("DashboardPage", () => {
   });
 
   it("professor ve Meu Dashboard sem resumo operacional", async () => {
-    storeSession("token-de-teste", {
-      id: 2,
-      nome: "Prof Maria",
-      username: "prof_maria",
-      funcao: "professor",
-      ativo: true,
-      trocar_senha_no_proximo_acesso: false,
-      professor_id: 1,
-    });
     vi.stubGlobal(
       "fetch",
       vi.fn((input: RequestInfo | URL) => {
@@ -101,7 +91,15 @@ describe("DashboardPage", () => {
       }),
     );
 
-    renderApp("/dashboard");
+    renderApp("/dashboard", true, {
+      id: 2,
+      nome: "Prof Maria",
+      username: "prof_maria",
+      funcao: "professor",
+      ativo: true,
+      trocar_senha_no_proximo_acesso: false,
+      professor_id: 1,
+    });
 
     await waitFor(() => {
       expect(screen.getByText("Meu Dashboard")).toBeInTheDocument();

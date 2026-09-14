@@ -102,6 +102,22 @@ describe("AppRoutes", () => {
             ),
           );
         }
+        if (url.includes("/dashboard/resumo")) {
+          return Promise.resolve(
+            new Response(
+              JSON.stringify({
+                data_inicio: "2026-09-01",
+                data_fim: "2026-09-14",
+                alocacoes_por_turno: { manha: 2, tarde: 1, noite: 1 },
+                alocacoes_por_turma: [
+                  { turma_id: 1, turma_codigo: "T1", turma_nome: "Turma 1", alocacoes: 2 },
+                ],
+                total_substituicoes: 0,
+                total_alocacoes: 4,
+              }),
+            ),
+          );
+        }
         return Promise.resolve(new Response(JSON.stringify([])));
       }),
     );
