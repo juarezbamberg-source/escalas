@@ -167,20 +167,24 @@ export function CadastrosPage() {
   async function refreshReferences() {
     startLoading();
     try {
-      const incluirInativos = filtroStatus !== "ativos";
+      // Onda 8 (RF-06): busca sempre com inativos para os contadores das abas
+      // refletirem o total real; a exibicao continua filtrada client-side.
       const [professores, ucs, turmas] = await Promise.all([
-        api.listProfessores(incluirInativos),
-        api.listUcs(incluirInativos),
-        api.listTurmas(incluirInativos),
+        api.listProfessores(true),
+        api.listUcs(true),
+        api.listTurmas(true),
       ]);
       const visiveis = <T extends { ativo: boolean }>(itens: T[]): T[] =>
         filtroStatus === "todos"
           ? itens
           : itens.filter((item) => (filtroStatus === "ativos" ? item.ativo : !item.ativo));
+      const professoresVisiveis = visiveis(professores);
+      const ucsVisiveis = visiveis(ucs);
+      const turmasVisiveis = visiveis(turmas);
       setReferenceData({
-        professores: visiveis(professores),
-        ucs: visiveis(ucs),
-        turmas: visiveis(turmas),
+        professores: professoresVisiveis,
+        ucs: ucsVisiveis,
+        turmas: turmasVisiveis,
       });
       // Onda 8 (RF-06): contadores das abas com o total real por status.
       const todas = [...professores, ...ucs, ...turmas];
@@ -189,16 +193,16 @@ export function CadastrosPage() {
         inativos: todas.filter((item) => !item.ativo).length,
         todos: todas.length,
       });
-      setTurmaForm((current) => ({ ...current, uc_id: current.uc_id || ucs[0]?.id || 0 }));
+      setTurmaForm((current) => ({ ...current, uc_id: current.uc_id || ucsVisiveis[0]?.id || 0 }));
       setAlocacaoForm((current) => ({
         ...current,
-        turma_id: current.turma_id || turmas[0]?.id || 0,
-        professor_titular_id: current.professor_titular_id || professores[0]?.id || 0,
+        turma_id: current.turma_id || turmasVisiveis[0]?.id || 0,
+        professor_titular_id: current.professor_titular_id || professoresVisiveis[0]?.id || 0,
       }));
       setBulkForm((current) => ({
         ...current,
-        turma_id: current.turma_id || turmas[0]?.id || 0,
-        professor_titular_id: current.professor_titular_id || professores[0]?.id || 0,
+        turma_id: current.turma_id || turmasVisiveis[0]?.id || 0,
+        professor_titular_id: current.professor_titular_id || professoresVisiveis[0]?.id || 0,
       }));
     } catch (error) {
       showError(readErrorMessage(error));

@@ -481,7 +481,7 @@ describe("CadastrosPage", () => {
     await screen.findAllByText("Maria Ativa");
 
     await user.click(screen.getByRole("button", { name: /^Editar$/i }));
-    const campoNome = screen.getByLabelText(/^Nome$/i);
+    const campoNome = screen.getAllByLabelText(/^Nome$/i)[0];
     await user.clear(campoNome);
     await user.type(campoNome, "Maria Editada");
     await user.click(screen.getByRole("button", { name: /Atualizar professor/i }));
