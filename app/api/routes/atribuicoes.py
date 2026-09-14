@@ -3,7 +3,7 @@ from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
-from app.core.security import require_funcao, require_usuario_habilitado
+from app.core.security import get_current_usuario, require_funcao, require_usuario_habilitado
 from app.db.session import get_db
 from app.models import Funcao, Usuario
 from app.schemas.atribuicao import AtribuicaoCreate, AtribuicaoRead, AtribuicaoUpdate
@@ -19,7 +19,16 @@ def listar_atribuicoes(
     turma_id: int | None = Query(default=None),
     vigente_em: date | None = Query(default=None),
     db: Session = Depends(get_db),
+    usuario: Usuario = Depends(get_current_usuario),
 ) -> list[AtribuicaoRead]:
+    """Onda 8 (ADR-008): professor só consulta as próprias atribuições."""
+    if usuario.funcao == Funcao.PROFESSOR:
+        if professor_id is not None and professor_id != usuario.professor_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Usuario sem permissao para esta acao.",
+            )
+        professor_id = usuario.professor_id
     items = atribuicoes_service.listar_atribuicoes(
         db, professor_id=professor_id, turma_id=turma_id, vigente_em=vigente_em
     )
