@@ -1411,3 +1411,10 @@ th {
 .paginacao span {
   color: var(--text-muted, #9aa4b2);
 }
+
+
+.exportar-acoes {
+  display: flex;
+  gap: 12px;
+  margin-top: 14px;
+}
