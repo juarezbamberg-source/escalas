@@ -7,6 +7,7 @@ export type Professor = {
   id: number;
   nome: string;
   contratacao: Contratacao;
+  ativo: boolean;
 };
 
 export type UnidadeCurricular = {
@@ -14,6 +15,7 @@ export type UnidadeCurricular = {
   codigo: string;
   nome: string;
   carga_horaria: number;
+  ativo: boolean;
 };
 
 export type Turma = {
@@ -22,6 +24,7 @@ export type Turma = {
   nome: string;
   turno_padrao: Turno;
   uc_id: number;
+  ativo: boolean;
 };
 
 export type Alocacao = {

@@ -74,15 +74,24 @@ export const api = {
       body: JSON.stringify({ senha_atual: senhaAtual, nova_senha: novaSenha }),
     }),
   health: () => request<{ status: string }>("/health"),
-  listProfessores: () => request<Professor[]>("/professores"),
+  listProfessores: (incluirInativos = false) =>
+    request<Professor[]>(`/professores${incluirInativos ? "?incluir_inativos=true" : ""}`),
   createProfessor: (payload: { nome: string; contratacao: string }) =>
     request<Professor>("/professores", { method: "POST", body: JSON.stringify(payload) }),
-  listUcs: () => request<UnidadeCurricular[]>("/ucs"),
+  updateProfessor: (professorId: number, payload: { ativo?: boolean; nome?: string; contratacao?: string }) =>
+    request<Professor>(`/professores/${professorId}`, { method: "PATCH", body: JSON.stringify(payload) }),
+  listUcs: (incluirInativos = false) =>
+    request<UnidadeCurricular[]>(`/ucs${incluirInativos ? "?incluir_inativos=true" : ""}`),
   createUc: (payload: { codigo: string; nome: string; carga_horaria: number }) =>
     request<UnidadeCurricular>("/ucs", { method: "POST", body: JSON.stringify(payload) }),
-  listTurmas: () => request<Turma[]>("/turmas"),
+  updateUc: (ucId: number, payload: { ativo?: boolean }) =>
+    request<UnidadeCurricular>(`/ucs/${ucId}`, { method: "PATCH", body: JSON.stringify(payload) }),
+  listTurmas: (incluirInativos = false) =>
+    request<Turma[]>(`/turmas${incluirInativos ? "?incluir_inativos=true" : ""}`),
   createTurma: (payload: { codigo: string; nome: string; turno_padrao: string; uc_id: number }) =>
     request<Turma>("/turmas", { method: "POST", body: JSON.stringify(payload) }),
+  updateTurma: (turmaId: number, payload: { ativo?: boolean }) =>
+    request<Turma>(`/turmas/${turmaId}`, { method: "PATCH", body: JSON.stringify(payload) }),
   listAlocacoes: (turno: string) => request<Alocacao[]>(`/alocacoes?turno=${turno}`),
   listCalendario: (turno: string, datas: string[]) =>
     request<CalendarioItem[]>(

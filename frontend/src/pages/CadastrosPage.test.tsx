@@ -11,15 +11,23 @@ function buildReferenceFetchMock() {
     if (method === "GET") {
       if (url.includes("/professores")) {
         return Promise.resolve(
-          new Response(JSON.stringify([{ id: 1, nome: "Juarez Bamberg da Silva", contratacao: "CLT" }])),
+          new Response(
+            JSON.stringify([{ id: 1, nome: "Juarez Bamberg da Silva", contratacao: "CLT", ativo: true }]),
+          ),
         );
       }
       if (url.includes("/ucs")) {
-        return Promise.resolve(new Response(JSON.stringify([{ id: 1, codigo: "UC1", nome: "UC 1", carga_horaria: 40 }])));
+        return Promise.resolve(
+          new Response(JSON.stringify([{ id: 1, codigo: "UC1", nome: "UC 1", carga_horaria: 40, ativo: true }])),
+        );
       }
       if (url.includes("/turmas")) {
         return Promise.resolve(
-          new Response(JSON.stringify([{ id: 1, codigo: "7074D", nome: "Turma 7074D", turno_padrao: "manha", uc_id: 1 }])),
+          new Response(
+            JSON.stringify([
+              { id: 1, codigo: "7074D", nome: "Turma 7074D", turno_padrao: "manha", uc_id: 1, ativo: true },
+            ]),
+          ),
         );
       }
     }
@@ -326,5 +334,53 @@ describe("CadastrosPage", () => {
       expect(confirmationDone).toBe(true);
     });
     expect(screen.getByText(/2 alocacao\(oes\) recorrente\(s\) criada\(s\) com sucesso/i)).toBeInTheDocument();
+  });
+
+  it("filtra por status e desativa um professor via PATCH", async () => {
+    const user = userEvent.setup();
+    let patchAtivo: boolean | undefined;
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        const method = init?.method ?? "GET";
+
+        if (method === "GET" && url.includes("/professores")) {
+          const incluirInativos = url.includes("incluir_inativos=true");
+          const itens = incluirInativos
+            ? [
+                { id: 1, nome: "Maria Ativa", contratacao: "CLT", ativo: true },
+                { id: 2, nome: "Joao Inativo", contratacao: "PF", ativo: false },
+              ]
+            : [{ id: 1, nome: "Maria Ativa", contratacao: "CLT", ativo: true }];
+          return Promise.resolve(new Response(JSON.stringify(itens)));
+        }
+        if (method === "GET" && (url.includes("/ucs") || url.includes("/turmas"))) {
+          return Promise.resolve(new Response(JSON.stringify([])));
+        }
+        if (method === "PATCH" && url.includes("/professores/2")) {
+          patchAtivo = (JSON.parse(String(init?.body ?? "{}")) as { ativo?: boolean }).ativo;
+          return Promise.resolve(
+            new Response(JSON.stringify({ id: 2, nome: "Joao Inativo", contratacao: "PF", ativo: true })),
+          );
+        }
+        return Promise.resolve(new Response(JSON.stringify([])));
+      }),
+    );
+
+    renderApp("/cadastros");
+
+    await screen.findByText("Maria Ativa");
+    expect(screen.queryByText("Joao Inativo")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("tab", { name: /^Todos$/i }));
+    await screen.findByText("Joao Inativo");
+    expect(screen.getByText(/inativo/i)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /Reativar/i }));
+    await waitFor(() => {
+      expect(patchAtivo).toBe(true);
+    });
   });
 });
