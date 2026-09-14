@@ -6,8 +6,12 @@ from app.schemas.turma import TurmaCreate, TurmaRead, TurmaUpdate
 from app.services.errors import ConflitoDeNegocioError, EntidadeNaoEncontradaError
 
 
-def listar_turmas(db: Session) -> list[TurmaRead]:
-    turmas = db.query(Turma).order_by(Turma.codigo.asc()).all()
+def listar_turmas(db: Session, incluir_inativos: bool = False) -> list[TurmaRead]:
+    """Onda 7: retorna apenas ativas por padrao; incluir_inativos=true traz todas."""
+    query = db.query(Turma).order_by(Turma.codigo.asc())
+    if not incluir_inativos:
+        query = query.filter(Turma.ativo.is_(True))
+    turmas = query.all()
     return [TurmaRead.model_validate(turma) for turma in turmas]
 
 
