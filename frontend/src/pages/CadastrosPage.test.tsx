@@ -525,7 +525,10 @@ describe("CadastrosPage", () => {
     });
 
     await screen.findAllByText("Professor 01");
-    expect(screen.queryAllByText("Professor 21")).toHaveLength(0);
+    const nomesNaLista = Array.from(document.querySelectorAll(".data-list li strong")).map(
+      (el) => el.textContent,
+    );
+    expect(nomesNaLista).not.toContain("Professor 21");
     expect(screen.getByText(/Pagina 1 de 2/i)).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /^Proxima$/i }));
