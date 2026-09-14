@@ -374,7 +374,7 @@ describe("CadastrosPage", () => {
     await screen.findAllByText("Maria Ativa");
     expect(screen.queryByText("Joao Inativo")).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("tab", { name: /^Todos$/i }));
+    await user.click(screen.getByRole("tab", { name: /^Todos \(/i }));
     await screen.findAllByText("Joao Inativo");
     expect(document.querySelectorAll(".badge-inativo").length).toBeGreaterThan(0);
 
@@ -382,5 +382,113 @@ describe("CadastrosPage", () => {
     await waitFor(() => {
       expect(patchAtivo).toBe(true);
     });
+  });
+
+  it("exibe contadores nas abas e mensagem de desativacao aponta o filtro", async () => {
+    const user = userEvent.setup();
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        const method = init?.method ?? "GET";
+
+        if (method === "GET" && url.includes("/professores")) {
+          const incluirInativos = url.includes("incluir_inativos=true");
+          const itens = incluirInativos
+            ? [
+                { id: 1, nome: "Maria Ativa", contratacao: "CLT", ativo: true },
+                { id: 2, nome: "Joao Inativo", contratacao: "PF", ativo: false },
+              ]
+            : [{ id: 1, nome: "Maria Ativa", contratacao: "CLT", ativo: true }];
+          return Promise.resolve(new Response(JSON.stringify(itens)));
+        }
+        if (method === "GET" && (url.includes("/ucs") || url.includes("/turmas"))) {
+          return Promise.resolve(new Response(JSON.stringify([])));
+        }
+        if (method === "PATCH" && url.includes("/professores/2")) {
+          return Promise.resolve(
+            new Response(JSON.stringify({ id: 2, nome: "Joao Inativo", contratacao: "PF", ativo: true })),
+          );
+        }
+        return Promise.resolve(new Response(JSON.stringify([])));
+      }),
+    );
+
+    renderApp("/cadastros", true, {
+      id: 1,
+      nome: "Coordenador",
+      username: "coord",
+      funcao: "coordenacao",
+      ativo: true,
+      trocar_senha_no_proximo_acesso: false,
+      professor_id: null,
+    });
+
+    await screen.findAllByText("Maria Ativa");
+    expect(screen.getByRole("tab", { name: /^Ativos \(1\)$/i })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /^Inativos \(1\)$/i })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /^Todos \(2\)$/i })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("tab", { name: /^Todos \(/i }));
+    await user.click(screen.getByRole("button", { name: /^Desativar$/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/use o filtro 'Inativos' para reativa-lo/i)).toBeInTheDocument();
+    });
+  });
+
+  it("edita um professor pela tela via PATCH", async () => {
+    const user = userEvent.setup();
+    let patchPayload: Record<string, unknown> | undefined;
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        const method = init?.method ?? "GET";
+
+        if (method === "GET" && url.includes("/professores")) {
+          return Promise.resolve(
+            new Response(
+              JSON.stringify([{ id: 1, nome: "Maria Ativa", contratacao: "CLT", ativo: true }]),
+            ),
+          );
+        }
+        if (method === "GET" && (url.includes("/ucs") || url.includes("/turmas"))) {
+          return Promise.resolve(new Response(JSON.stringify([])));
+        }
+        if (method === "PATCH" && url.includes("/professores/1")) {
+          patchPayload = JSON.parse(String(init?.body ?? "{}"));
+          return Promise.resolve(
+            new Response(JSON.stringify({ id: 1, nome: "Maria Editada", contratacao: "PJ", ativo: true })),
+          );
+        }
+        return Promise.resolve(new Response(JSON.stringify([])));
+      }),
+    );
+
+    renderApp("/cadastros", true, {
+      id: 1,
+      nome: "Coordenador",
+      username: "coord",
+      funcao: "coordenacao",
+      ativo: true,
+      trocar_senha_no_proximo_acesso: false,
+      professor_id: null,
+    });
+
+    await screen.findAllByText("Maria Ativa");
+
+    await user.click(screen.getByRole("button", { name: /^Editar$/i }));
+    const campoNome = screen.getByLabelText(/^Nome$/i);
+    await user.clear(campoNome);
+    await user.type(campoNome, "Maria Editada");
+    await user.click(screen.getByRole("button", { name: /Atualizar professor/i }));
+
+    await waitFor(() => {
+      expect(patchPayload).toMatchObject({ nome: "Maria Editada" });
+    });
+    expect(screen.getByText(/professor atualizado com sucesso/i)).toBeInTheDocument();
   });
 });

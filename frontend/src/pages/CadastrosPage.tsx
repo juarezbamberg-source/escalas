@@ -105,6 +105,12 @@ export function CadastrosPage() {
   const [appliedPreset, setAppliedPreset] = useState("");
   const [filtroStatus, setFiltroStatus] = useState<FiltroStatus>("ativos");
   const [busca, setBusca] = useState("");
+  const [contadores, setContadores] = useState({ ativos: 0, inativos: 0, todos: 0 });
+  const [modoEdicao, setModoEdicao] = useState<{
+    professor: Professor | null;
+    uc: UnidadeCurricular | null;
+    turma: Turma | null;
+  }>({ professor: null, uc: null, turma: null });
   const { startLoading, stopLoading, showError, showSuccess } = useAppStatus();
 
   const actionContext = readActionContext(searchParams);
@@ -176,6 +182,13 @@ export function CadastrosPage() {
         ucs: visiveis(ucs),
         turmas: visiveis(turmas),
       });
+      // Onda 8 (RF-06): contadores das abas com o total real por status.
+      const todas = [...professores, ...ucs, ...turmas];
+      setContadores({
+        ativos: todas.filter((item) => item.ativo).length,
+        inativos: todas.filter((item) => !item.ativo).length,
+        todos: todas.length,
+      });
       setTurmaForm((current) => ({ ...current, uc_id: current.uc_id || ucs[0]?.id || 0 }));
       setAlocacaoForm((current) => ({
         ...current,
@@ -204,7 +217,11 @@ export function CadastrosPage() {
     try {
       await api.updateProfessor(professor.id, { ativo: !professor.ativo });
       await refreshReferences();
-      showSuccess(`Professor ${professor.ativo ? "desativado" : "reativado"}.`);
+      showSuccess(
+        professor.ativo
+          ? "Professor desativado. Use o filtro 'Inativos' para reativa-lo."
+          : "Professor reativado.",
+      );
     } catch (error) {
       showError(readErrorMessage(error));
     } finally {
@@ -217,7 +234,11 @@ export function CadastrosPage() {
     try {
       await api.updateUc(uc.id, { ativo: !uc.ativo });
       await refreshReferences();
-      showSuccess(`UC ${uc.ativo ? "desativada" : "reativada"}.`);
+      showSuccess(
+        uc.ativo
+          ? "UC desativada. Use o filtro 'Inativos' para reativa-la."
+          : "UC reativada.",
+      );
     } catch (error) {
       showError(readErrorMessage(error));
     } finally {
@@ -230,7 +251,92 @@ export function CadastrosPage() {
     try {
       await api.updateTurma(turma.id, { ativo: !turma.ativo });
       await refreshReferences();
-      showSuccess(`Turma ${turma.ativo ? "desativada" : "reativada"}.`);
+      showSuccess(
+        turma.ativo
+          ? "Turma desativada. Use o filtro 'Inativos' para reativa-la."
+          : "Turma reativada.",
+      );
+    } catch (error) {
+      showError(readErrorMessage(error));
+    } finally {
+      stopLoading();
+    }
+  }
+
+  // Onda 8 (RF-07): edicao de cadastros pela tela.
+  function iniciarEdicaoProfessor(professor: Professor) {
+    setModoEdicao((atual) => ({ ...atual, professor }));
+    setProfessorForm({ nome: professor.nome, contratacao: professor.contratacao });
+  }
+
+  function cancelarEdicaoProfessor() {
+    setModoEdicao((atual) => ({ ...atual, professor: null }));
+    setProfessorForm(initialProfessor);
+  }
+
+  async function salvarEdicaoProfessor() {
+    if (!modoEdicao.professor) return;
+    startLoading();
+    try {
+      await api.updateProfessor(modoEdicao.professor.id, professorForm);
+      cancelarEdicaoProfessor();
+      await refreshReferences();
+      showSuccess("Professor atualizado com sucesso.");
+    } catch (error) {
+      showError(readErrorMessage(error));
+    } finally {
+      stopLoading();
+    }
+  }
+
+  function iniciarEdicaoUc(uc: UnidadeCurricular) {
+    setModoEdicao((atual) => ({ ...atual, uc }));
+    setUcForm({ codigo: uc.codigo, nome: uc.nome, carga_horaria: uc.carga_horaria });
+  }
+
+  function cancelarEdicaoUc() {
+    setModoEdicao((atual) => ({ ...atual, uc: null }));
+    setUcForm(initialUc);
+  }
+
+  async function salvarEdicaoUc() {
+    if (!modoEdicao.uc) return;
+    startLoading();
+    try {
+      await api.updateUc(modoEdicao.uc.id, ucForm);
+      cancelarEdicaoUc();
+      await refreshReferences();
+      showSuccess("UC atualizada com sucesso.");
+    } catch (error) {
+      showError(readErrorMessage(error));
+    } finally {
+      stopLoading();
+    }
+  }
+
+  function iniciarEdicaoTurma(turma: Turma) {
+    setModoEdicao((atual) => ({ ...atual, turma }));
+    setTurmaForm({
+      codigo: turma.codigo,
+      nome: turma.nome,
+      turno_padrao: turma.turno_padrao,
+      uc_id: turma.uc_id,
+    });
+  }
+
+  function cancelarEdicaoTurma() {
+    setModoEdicao((atual) => ({ ...atual, turma: null }));
+    setTurmaForm((current) => ({ ...initialTurma, uc_id: current.uc_id }));
+  }
+
+  async function salvarEdicaoTurma() {
+    if (!modoEdicao.turma) return;
+    startLoading();
+    try {
+      await api.updateTurma(modoEdicao.turma.id, turmaForm);
+      cancelarEdicaoTurma();
+      await refreshReferences();
+      showSuccess("Turma atualizada com sucesso.");
     } catch (error) {
       showError(readErrorMessage(error));
     } finally {
@@ -356,7 +462,11 @@ export function CadastrosPage() {
                 className={`turno-tabs__button${filtroStatus === valor ? " turno-tabs__button--active" : ""}`}
                 onClick={() => setFiltroStatus(valor)}
               >
-                {valor === "ativos" ? "Ativos" : valor === "inativos" ? "Inativos" : "Todos"}
+                {valor === "ativos"
+                  ? `Ativos (${contadores.ativos})`
+                  : valor === "inativos"
+                    ? `Inativos (${contadores.inativos})`
+                    : `Todos (${contadores.todos})`}
               </button>
             ))}
           </div>
@@ -409,6 +519,10 @@ export function CadastrosPage() {
             className="form-grid"
             onSubmit={(event) =>
               handleSubmit(event, async () => {
+                if (modoEdicao.professor) {
+                  await salvarEdicaoProfessor();
+                  return;
+                }
                 await api.createProfessor(professorForm);
                 setProfessorForm(initialProfessor);
                 await refreshReferences();
@@ -442,9 +556,20 @@ export function CadastrosPage() {
                 <option value="PJ">PJ</option>
               </select>
             </label>
-            <button type="submit" className="primary-button">
-              Salvar professor
-            </button>
+            {modoEdicao.professor ? (
+              <>
+                <button type="submit" className="primary-button">
+                  Atualizar professor
+                </button>
+                <button type="button" className="ghost-button" onClick={cancelarEdicaoProfessor}>
+                  Cancelar
+                </button>
+              </>
+            ) : (
+              <button type="submit" className="primary-button">
+                Salvar professor
+              </button>
+            )}
           </form>
           <ul className="data-list">
             {professoresVisiveis.map((professor) => (
@@ -452,6 +577,13 @@ export function CadastrosPage() {
                 <strong>{professor.nome}</strong>
                 <span>{professor.contratacao}</span>
                 {!professor.ativo && <span className="badge-inativo">Inativo</span>}
+                <button
+                  type="button"
+                  className="ghost-button"
+                  onClick={() => iniciarEdicaoProfessor(professor)}
+                >
+                  Editar
+                </button>
                 <button
                   type="button"
                   className="ghost-button"
@@ -469,6 +601,10 @@ export function CadastrosPage() {
             className="form-grid"
             onSubmit={(event) =>
               handleSubmit(event, async () => {
+                if (modoEdicao.uc) {
+                  await salvarEdicaoUc();
+                  return;
+                }
                 await api.createUc(ucForm);
                 setUcForm(initialUc);
                 await refreshReferences();
@@ -511,9 +647,20 @@ export function CadastrosPage() {
                 required
               />
             </label>
-            <button type="submit" className="primary-button">
-              Salvar UC
-            </button>
+            {modoEdicao.uc ? (
+              <>
+                <button type="submit" className="primary-button">
+                  Atualizar UC
+                </button>
+                <button type="button" className="ghost-button" onClick={cancelarEdicaoUc}>
+                  Cancelar
+                </button>
+              </>
+            ) : (
+              <button type="submit" className="primary-button">
+                Salvar UC
+              </button>
+            )}
           </form>
           <ul className="data-list">
             {ucsVisiveis.map((uc) => (
@@ -521,6 +668,13 @@ export function CadastrosPage() {
                 <strong>{uc.codigo}</strong>
                 <span>{uc.nome}</span>
                 {!uc.ativo && <span className="badge-inativo">Inativo</span>}
+                <button
+                  type="button"
+                  className="ghost-button"
+                  onClick={() => iniciarEdicaoUc(uc)}
+                >
+                  Editar
+                </button>
                 <button
                   type="button"
                   className="ghost-button"
@@ -540,6 +694,10 @@ export function CadastrosPage() {
             className="form-grid"
             onSubmit={(event) =>
               handleSubmit(event, async () => {
+                if (modoEdicao.turma) {
+                  await salvarEdicaoTurma();
+                  return;
+                }
                 await api.createTurma(turmaForm);
                 setTurmaForm((current) => ({
                   ...initialTurma,
@@ -601,13 +759,24 @@ export function CadastrosPage() {
                 ))}
               </select>
             </label>
-            <button
-              type="submit"
-              className="primary-button"
-              disabled={referenceData.ucs.length === 0}
-            >
-              Salvar turma
-            </button>
+            {modoEdicao.turma ? (
+              <>
+                <button type="submit" className="primary-button">
+                  Atualizar turma
+                </button>
+                <button type="button" className="ghost-button" onClick={cancelarEdicaoTurma}>
+                  Cancelar
+                </button>
+              </>
+            ) : (
+              <button
+                type="submit"
+                className="primary-button"
+                disabled={referenceData.ucs.length === 0}
+              >
+                Salvar turma
+              </button>
+            )}
           </form>
           <ul className="data-list">
             {turmasVisiveis.map((turma) => (
@@ -615,6 +784,13 @@ export function CadastrosPage() {
                 <strong>{turma.codigo}</strong>
                 <span>{turma.turno_padrao}</span>
                 {!turma.ativo && <span className="badge-inativo">Inativo</span>}
+                <button
+                  type="button"
+                  className="ghost-button"
+                  onClick={() => iniciarEdicaoTurma(turma)}
+                >
+                  Editar
+                </button>
                 <button
                   type="button"
                   className="ghost-button"
