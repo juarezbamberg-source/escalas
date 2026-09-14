@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     limite_anual_carga_alocacoes: int = 100
 
     # --- Autenticacao (Onda 4) ---
-    secret_key: str = "troque-esta-chave-em-producao"
+    secret_key: str = "troque-esta-chave-em-producao-com-no-minimo-32-bytes!"
     access_token_expire_minutes: int = 60
     algoritmo_jwt: str = "HS256"
 

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field
 
 from app.models.enums import Funcao
 
@@ -10,18 +10,8 @@ class Token(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    username: str | None = None
-    senha: str | None = None
-    # Compatibilidade temporária com o login da Onda 4.
-    professor_id: int | None = None
-
-    @model_validator(mode="after")
-    def validar_credenciais(self) -> "LoginRequest":
-        login_local = self.username is not None and self.senha is not None
-        login_onda4 = self.professor_id is not None
-        if not login_local and not login_onda4:
-            raise ValueError("Informe username e senha.")
-        return self
+    username: str
+    senha: str
 
 
 class UsuarioRead(BaseModel):

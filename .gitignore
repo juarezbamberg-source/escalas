@@ -19,6 +19,4 @@ escalas.db
 .DS_Store
 Thumbs.db
 
-Add-Content .gitignore ".coverage"
-Add-Content .gitignore ".pytest_cache/"
-Add-Content .gitignore "__pycache__/".coverage
+.coverage
