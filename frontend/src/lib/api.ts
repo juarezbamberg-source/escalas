@@ -85,13 +85,13 @@ export const api = {
     request<UnidadeCurricular[]>(`/ucs${incluirInativos ? "?incluir_inativos=true" : ""}`),
   createUc: (payload: { codigo: string; nome: string; carga_horaria: number }) =>
     request<UnidadeCurricular>("/ucs", { method: "POST", body: JSON.stringify(payload) }),
-  updateUc: (ucId: number, payload: { ativo?: boolean }) =>
+  updateUc: (ucId: number, payload: { ativo?: boolean; codigo?: string; nome?: string; carga_horaria?: number }) =>
     request<UnidadeCurricular>(`/ucs/${ucId}`, { method: "PATCH", body: JSON.stringify(payload) }),
   listTurmas: (incluirInativos = false) =>
     request<Turma[]>(`/turmas${incluirInativos ? "?incluir_inativos=true" : ""}`),
   createTurma: (payload: { codigo: string; nome: string; turno_padrao: string; uc_id: number }) =>
     request<Turma>("/turmas", { method: "POST", body: JSON.stringify(payload) }),
-  updateTurma: (turmaId: number, payload: { ativo?: boolean }) =>
+  updateTurma: (turmaId: number, payload: { ativo?: boolean; codigo?: string; nome?: string; turno_padrao?: string; uc_id?: number }) =>
     request<Turma>(`/turmas/${turmaId}`, { method: "PATCH", body: JSON.stringify(payload) }),
   listAlocacoes: (turno: string) => request<Alocacao[]>(`/alocacoes?turno=${turno}`),
   listCalendario: (turno: string, datas: string[]) =>
