@@ -371,7 +371,7 @@ describe("CadastrosPage", () => {
 
     renderApp("/cadastros");
 
-    await screen.findByText("Maria Ativa");
+    await screen.findAllByText("Maria Ativa");
     expect(screen.queryByText("Joao Inativo")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("tab", { name: /^Todos$/i }));
