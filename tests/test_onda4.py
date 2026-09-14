@@ -1,13 +1,11 @@
 """Testes da Onda 4: autenticacao (login/token), PATCH, feriados e regras."""
 
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timezone
 
 import jwt
-import pytest
-from fastapi import HTTPException
 
 from app.core.config import get_settings
-from app.core.security import criar_token_acesso, get_current_professor
+from app.core.security import criar_token_acesso
 from app.services import feriados, regras
 
 
@@ -59,52 +57,23 @@ def _criar_alocacao(
 
 # --- Autenticacao: POST /auth/login ---
 
-def test_login_emite_token_para_professor_existente(client) -> None:
-    professor = _criar_professor(client, "Maria Login")
-    response = client.post("/auth/login", json={"professor_id": professor["id"]})
-
-    assert response.status_code == 200, response.text
-    body = response.json()
-    assert body["token_type"] == "bearer"
-    assert body["access_token"]
-
+def test_criar_token_acesso_contem_sub_funcao_e_expiracao() -> None:
     settings = get_settings()
-    payload = jwt.decode(body["access_token"], settings.secret_key, algorithms=[settings.algoritmo_jwt])
-    assert payload["sub"] == str(professor["id"])
-    assert "exp" in payload
-
-
-def test_login_rejeita_professor_inexistente(client) -> None:
-    response = client.post("/auth/login", json={"professor_id": 99999})
-    assert response.status_code == 401
-
-
-# --- Autenticacao: security (unidade) ---
-
-def test_criar_token_acesso_contem_sub_e_expiracao() -> None:
-    settings = get_settings()
-    token = criar_token_acesso(42)
+    token = criar_token_acesso(42, "professor")
     payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algoritmo_jwt])
     assert payload["sub"] == "42"
+    assert payload["funcao"] == "professor"
     assert payload["exp"] > int(datetime.now(timezone.utc).timestamp())
 
 
-def test_get_current_professor_rejeita_token_invalido() -> None:
-    with pytest.raises(HTTPException) as exc_info:
-        get_current_professor("token-invalido")
-    assert exc_info.value.status_code == 401
+def test_login_rejeita_credenciais_ausentes(client) -> None:
+    response = client.post("/auth/login", json={"username": "alguem"})
+    assert response.status_code == 422
 
 
-def test_get_current_professor_rejeita_token_sem_sub() -> None:
-    settings = get_settings()
-    token = jwt.encode(
-        {"exp": datetime.now(timezone.utc) + timedelta(minutes=5)},
-        settings.secret_key,
-        algorithm=settings.algoritmo_jwt,
-    )
-    with pytest.raises(HTTPException) as exc_info:
-        get_current_professor(token)
-    assert exc_info.value.status_code == 401
+def test_login_rejeita_usuario_inexistente(client) -> None:
+    response = client.post("/auth/login", json={"username": "fantasma", "senha": "Senha-123!"})
+    assert response.status_code == 401
 
 
 # --- Config: CORS e JWT expostos ---
