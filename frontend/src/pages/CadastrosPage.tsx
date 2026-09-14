@@ -106,6 +106,11 @@ export function CadastrosPage() {
   const [filtroStatus, setFiltroStatus] = useState<FiltroStatus>("ativos");
   const [busca, setBusca] = useState("");
   const [contadores, setContadores] = useState({ ativos: 0, inativos: 0, todos: 0 });
+  // Onda 8 (RF-08): paginação client-side, 20 itens por página.
+  const ITENS_POR_PAGINA = 20;
+  const [paginaProfessores, setPaginaProfessores] = useState(1);
+  const [paginaUcs, setPaginaUcs] = useState(1);
+  const [paginaTurmas, setPaginaTurmas] = useState(1);
   const [modoEdicao, setModoEdicao] = useState<{
     professor: Professor | null;
     uc: UnidadeCurricular | null;
@@ -214,7 +219,14 @@ export function CadastrosPage() {
   useEffect(() => {
     void refreshReferences();
     // Onda 7: recarrega as listas quando o filtro de status muda.
-  }, [filtroStatus]);
+    // Onda 8: volta para a primeira pagina quando filtro ou busca mudam.
+  }, [filtroStatus, busca]);
+
+  useEffect(() => {
+    setPaginaProfessores(1);
+    setPaginaUcs(1);
+    setPaginaTurmas(1);
+  }, [busca, filtroStatus]);
 
   async function alternarStatusProfessor(professor: Professor) {
     startLoading();
@@ -349,17 +361,39 @@ export function CadastrosPage() {
   }
 
   const termoBusca = busca.trim().toLowerCase();
-  const professoresVisiveis = referenceData.professores.filter(
+  const professoresFiltrados = referenceData.professores.filter(
     (professor) =>
       !termoBusca ||
       professor.nome.toLowerCase().includes(termoBusca),
   );
-  const ucsVisiveis = referenceData.ucs.filter(
+  const ucsFiltradas = referenceData.ucs.filter(
     (uc) => !termoBusca || uc.codigo.toLowerCase().includes(termoBusca) || uc.nome.toLowerCase().includes(termoBusca),
   );
-  const turmasVisiveis = referenceData.turmas.filter(
+  const turmasFiltradas = referenceData.turmas.filter(
     (turma) => !termoBusca || turma.codigo.toLowerCase().includes(termoBusca) || turma.nome.toLowerCase().includes(termoBusca),
   );
+  const totalPaginasProfessores = Math.max(Math.ceil(professoresFiltrados.length / ITENS_POR_PAGINA), 1);
+  const totalPaginasUcs = Math.max(Math.ceil(ucsFiltradas.length / ITENS_POR_PAGINA), 1);
+  const totalPaginasTurmas = Math.max(Math.ceil(turmasFiltradas.length / ITENS_POR_PAGINA), 1);
+  const professoresVisiveis = professoresFiltrados.slice(
+    (paginaProfessores - 1) * ITENS_POR_PAGINA,
+    paginaProfessores * ITENS_POR_PAGINA,
+  );
+  const ucsVisiveis = ucsFiltradas.slice(
+    (paginaUcs - 1) * ITENS_POR_PAGINA,
+    paginaUcs * ITENS_POR_PAGINA,
+  );
+  const turmasVisiveis = turmasFiltradas.slice(
+    (paginaTurmas - 1) * ITENS_POR_PAGINA,
+    paginaTurmas * ITENS_POR_PAGINA,
+  );
+
+  function mudarPagina(direcao: 1 | -1, pagina: number, total: number, setPagina: (n: number) => void) {
+    const proxima = pagina + direcao;
+    if (proxima >= 1 && proxima <= total) {
+      setPagina(proxima);
+    }
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>, action: () => Promise<void>) {
     event.preventDefault();
@@ -598,6 +632,29 @@ export function CadastrosPage() {
               </li>
             ))}
           </ul>
+          {totalPaginasProfessores > 1 ? (
+            <div className="paginacao">
+              <button
+                type="button"
+                className="ghost-button"
+                disabled={paginaProfessores === 1}
+                onClick={() => mudarPagina(-1, paginaProfessores, totalPaginasProfessores, setPaginaProfessores)}
+              >
+                Anterior
+              </button>
+              <span>
+                Pagina {paginaProfessores} de {totalPaginasProfessores}
+              </span>
+              <button
+                type="button"
+                className="ghost-button"
+                disabled={paginaProfessores === totalPaginasProfessores}
+                onClick={() => mudarPagina(1, paginaProfessores, totalPaginasProfessores, setPaginaProfessores)}
+              >
+                Proxima
+              </button>
+            </div>
+          ) : null}
         </SectionCard>
 
         <SectionCard eyebrow="Unidades curriculares" title="Cadastro de UCs">
@@ -689,6 +746,29 @@ export function CadastrosPage() {
               </li>
             ))}
           </ul>
+          {totalPaginasUcs > 1 ? (
+            <div className="paginacao">
+              <button
+                type="button"
+                className="ghost-button"
+                disabled={paginaUcs === 1}
+                onClick={() => mudarPagina(-1, paginaUcs, totalPaginasUcs, setPaginaUcs)}
+              >
+                Anterior
+              </button>
+              <span>
+                Pagina {paginaUcs} de {totalPaginasUcs}
+              </span>
+              <button
+                type="button"
+                className="ghost-button"
+                disabled={paginaUcs === totalPaginasUcs}
+                onClick={() => mudarPagina(1, paginaUcs, totalPaginasUcs, setPaginaUcs)}
+              >
+                Proxima
+              </button>
+            </div>
+          ) : null}
         </SectionCard>
       </div>
 
@@ -805,6 +885,29 @@ export function CadastrosPage() {
               </li>
             ))}
           </ul>
+          {totalPaginasTurmas > 1 ? (
+            <div className="paginacao">
+              <button
+                type="button"
+                className="ghost-button"
+                disabled={paginaTurmas === 1}
+                onClick={() => mudarPagina(-1, paginaTurmas, totalPaginasTurmas, setPaginaTurmas)}
+              >
+                Anterior
+              </button>
+              <span>
+                Pagina {paginaTurmas} de {totalPaginasTurmas}
+              </span>
+              <button
+                type="button"
+                className="ghost-button"
+                disabled={paginaTurmas === totalPaginasTurmas}
+                onClick={() => mudarPagina(1, paginaTurmas, totalPaginasTurmas, setPaginaTurmas)}
+              >
+                Proxima
+              </button>
+            </div>
+          ) : null}
         </SectionCard>
 
         <SectionCard eyebrow="Alocacoes" title="Registrar nova alocacao">

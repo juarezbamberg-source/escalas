@@ -1397,3 +1397,17 @@ th {
   font-size: 0.95rem;
   color: var(--text-muted, #9aa4b2);
 }
+
+
+.paginacao {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 14px;
+  font-size: 0.9rem;
+}
+
+.paginacao span {
+  color: var(--text-muted, #9aa4b2);
+}
