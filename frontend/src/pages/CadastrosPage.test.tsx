@@ -375,8 +375,8 @@ describe("CadastrosPage", () => {
     expect(screen.queryByText("Joao Inativo")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("tab", { name: /^Todos$/i }));
-    await screen.findByText("Joao Inativo");
-    expect(screen.getByText(/inativo/i)).toBeInTheDocument();
+    await screen.findAllByText("Joao Inativo");
+    expect(document.querySelectorAll(".badge-inativo").length).toBeGreaterThan(0);
 
     await user.click(screen.getByRole("button", { name: /Reativar/i }));
     await waitFor(() => {
