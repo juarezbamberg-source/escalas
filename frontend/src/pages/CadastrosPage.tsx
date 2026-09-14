@@ -167,7 +167,7 @@ export function CadastrosPage() {
         api.listUcs(incluirInativos),
         api.listTurmas(incluirInativos),
       ]);
-      const visiveis = (itens: { ativo: boolean }[]) =>
+      const visiveis = <T extends { ativo: boolean }>(itens: T[]): T[] =>
         filtroStatus === "todos"
           ? itens
           : itens.filter((item) => (filtroStatus === "ativos" ? item.ativo : !item.ativo));
