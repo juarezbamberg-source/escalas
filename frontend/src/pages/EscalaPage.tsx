@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { useAppStatus } from "../app/AppStatusContext";
 import { EscalaActionDrawer, type EscalaDrawerAction, type EscalaDrawerRow } from "../components/EscalaActionDrawer";
 import { SectionCard } from "../components/SectionCard";
+import { exportarEscalaExcel, exportarEscalaPdf } from "../lib/exportar";
 import { StatusLegend } from "../components/StatusLegend";
 import { TurnoTabs } from "../components/TurnoTabs";
 import { api, ApiError } from "../lib/api";
@@ -1225,6 +1226,48 @@ export function EscalaPage() {
         <SectionCard eyebrow="Consulta operacional" title="Escala por turno">
           <p>Selecione um turno e combine filtros para encontrar conflitos, lacunas, substituicoes e overrides com mais rapidez.</p>
           <TurnoTabs value={turno} onChange={handleTurnoChange} />
+          <div className="exportar-acoes">
+            <button
+              type="button"
+              className="ghost-button"
+              onClick={() =>
+                exportarEscalaPdf(
+                  filteredRows.map((row) => ({
+                    turma_codigo: row.turma_codigo,
+                    data: row.data,
+                    turno: row.turno,
+                    professor_titular_nome: row.professor_titular_nome,
+                    professor_substituto_nome: row.professor_substituto_nome,
+                    forcada: row.forcada,
+                    status_visual: row.status_visual,
+                  })),
+                  { turno, dataInicio: filters.startDate, dataFim: filters.endDate },
+                )
+              }
+            >
+              Exportar PDF
+            </button>
+            <button
+              type="button"
+              className="ghost-button"
+              onClick={() =>
+                exportarEscalaExcel(
+                  filteredRows.map((row) => ({
+                    turma_codigo: row.turma_codigo,
+                    data: row.data,
+                    turno: row.turno,
+                    professor_titular_nome: row.professor_titular_nome,
+                    professor_substituto_nome: row.professor_substituto_nome,
+                    forcada: row.forcada,
+                    status_visual: row.status_visual,
+                  })),
+                  { turno, dataInicio: filters.startDate, dataFim: filters.endDate },
+                )
+              }
+            >
+              Exportar Excel
+            </button>
+          </div>
         </SectionCard>
 
         <SectionCard eyebrow="Recorte inteligente" title="Filtros avancados">
