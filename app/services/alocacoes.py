@@ -5,7 +5,7 @@ from sqlalchemy import Select, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
-from app.models import Alocacao, Atribuicao, Contratacao, Professor, Turma, Turno
+from app.models import Alocacao, Atribuicao, Contratacao, Professor, Turma, Turno, Usuario
 from app.schemas.alocacao import (
     AlocacaoBulkCreateItem,
     AlocacaoBulkCreateRequest,
@@ -430,6 +430,21 @@ def _validar_candidato_sem_persistir(db: Session, payload: AlocacaoCreate) -> st
         return str(exc)
 
 
+def _validar_professor_elegivel(db: Session, professor: Professor) -> None:
+    """Onda 9 (RF-03): professor precisa estar ativo no cadastro E com usuário vinculado ativo."""
+    if not professor.ativo:
+        raise ConflitoDeNegocioError(
+            f"Professor {professor.nome} esta inativo no cadastro."
+        )
+    usuario_vinculado = db.scalar(
+        select(Usuario).where(Usuario.professor_id == professor.id)
+    )
+    if usuario_vinculado is not None and not usuario_vinculado.ativo:
+        raise ConflitoDeNegocioError(
+            f"Professor {professor.nome} esta desligado do sistema (usuario inativo)."
+        )
+
+
 def _validar_dependencias_da_alocacao(db: Session, payload: AlocacaoCreate) -> tuple[Turno, Turma, Professor, Professor | None]:
     validar_override(payload)
     turno_validado = validar_turno(payload.turno)
@@ -442,12 +457,14 @@ def _validar_dependencias_da_alocacao(db: Session, payload: AlocacaoCreate) -> t
     professor_titular = db.get(Professor, payload.professor_titular_id)
     if not professor_titular:
         raise EntidadeNaoEncontradaError("Professor titular nao encontrado.")
+    _validar_professor_elegivel(db, professor_titular)
 
     professor_substituto = None
     if payload.professor_substituto_id is not None:
         professor_substituto = db.get(Professor, payload.professor_substituto_id)
         if not professor_substituto:
             raise EntidadeNaoEncontradaError("Professor substituto nao encontrado.")
+        _validar_professor_elegivel(db, professor_substituto)
 
     duplicada = db.scalar(
         select(Alocacao)

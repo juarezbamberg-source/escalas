@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel, Field
 
 from app.models.enums import Funcao
@@ -22,6 +24,8 @@ class UsuarioRead(BaseModel):
     ativo: bool
     trocar_senha_no_proximo_acesso: bool
     professor_id: int | None = None
+    motivo_desativacao: str | None = None
+    desativado_em: datetime | None = None
 
     model_config = {"from_attributes": True}
 

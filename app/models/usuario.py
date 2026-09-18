@@ -19,6 +19,11 @@ class Usuario(Base):
     trocar_senha_no_proximo_acesso: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True, server_default="1"
     )
+    # Onda 9 (ADR-009): rastreabilidade da desativacao.
+    motivo_desativacao: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    desativado_em: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     professor_id: Mapped[int | None] = mapped_column(
         ForeignKey("professores.id", ondelete="RESTRICT"), nullable=True
     )
