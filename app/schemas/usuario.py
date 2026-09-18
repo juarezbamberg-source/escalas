@@ -17,6 +17,7 @@ class UsuarioUpdate(BaseModel):
     funcao: Funcao | None = None
     ativo: bool | None = None
     professor_id: int | None = None
+    motivo_desativacao: str | None = Field(default=None, max_length=255)
     nova_senha_temporaria: str | None = Field(default=None, min_length=8)
 
 

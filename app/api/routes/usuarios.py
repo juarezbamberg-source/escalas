@@ -46,15 +46,20 @@ def atualizar_usuario(
         return usuarios_service.atualizar_usuario(db, usuario_id, payload)
     except LookupError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except usuarios_service.RegraDeNegocioUsuarioError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=exc.mensagem) from exc
 
 
-@router.delete("/{usuario_id}", response_model=UsuarioRead)
-def desativar_usuario(
+@router.delete("/{usuario_id}", status_code=status.HTTP_204_NO_CONTENT)
+def excluir_usuario(
     usuario_id: int,
     db: Session = Depends(get_db),
     _: Usuario = Depends(require_funcao(Funcao.ADMIN)),
-) -> Usuario:
+) -> None:
+    """Onda 9 (ADR-009): exclusão física criteriosa — só sem vínculos operacionais."""
     try:
-        return usuarios_service.atualizar_usuario(db, usuario_id, UsuarioUpdate(ativo=False))
+        usuarios_service.excluir_usuario(db, usuario_id)
     except LookupError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except usuarios_service.RegraDeNegocioUsuarioError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=exc.mensagem) from exc
