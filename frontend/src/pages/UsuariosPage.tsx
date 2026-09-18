@@ -17,6 +17,12 @@ export function UsuariosPage() {
   const [mensagem, setMensagem] = useState<string | null>(null);
   const [novaSenha, setNovaSenha] = useState<NovaSenhaInfo | null>(null);
   const [carregando, setCarregando] = useState(true);
+  // Onda 9 (RF-06): abas de status com contadores.
+  const [filtroStatus, setFiltroStatus] = useState<"ativos" | "inativos" | "todos">("ativos");
+  const [contadores, setContadores] = useState({ ativos: 0, inativos: 0, todos: 0 });
+  // Onda 9 (RF-05): motivo opcional ao desativar.
+  const [desativando, setDesativando] = useState<UsuarioAtual | null>(null);
+  const [motivoDesativacao, setMotivoDesativacao] = useState("");
 
   const [nome, setNome] = useState("");
   const [username, setUsername] = useState("");
@@ -28,14 +34,25 @@ export function UsuariosPage() {
     setCarregando(true);
     setErro(null);
     try {
+      // Onda 9: busca sempre com tudo para os contadores das abas; exibicao filtra client-side.
       const resposta = await api.listUsuarios(busca ? { busca } : {});
-      setUsuarios(resposta.items);
+      const itens = resposta.items;
+      setContadores({
+        ativos: itens.filter((u) => u.ativo).length,
+        inativos: itens.filter((u) => !u.ativo).length,
+        todos: itens.length,
+      });
+      const visiveis =
+        filtroStatus === "todos"
+          ? itens
+          : itens.filter((u) => (filtroStatus === "ativos" ? u.ativo : !u.ativo));
+      setUsuarios(visiveis);
     } catch (error) {
       setErro(error instanceof ApiError ? error.message : "Nao foi possivel carregar os usuarios.");
     } finally {
       setCarregando(false);
     }
-  }, [busca]);
+  }, [busca, filtroStatus]);
 
   useEffect(() => {
     void carregar();
@@ -77,14 +94,56 @@ export function UsuariosPage() {
   }
 
   async function alternarAtivo(usuario: UsuarioAtual) {
+    // Onda 9 (RF-05): desativacao pede motivo (opcional) via painel; reativacao direta.
+    if (usuario.ativo) {
+      setDesativando(usuario);
+      setMotivoDesativacao("");
+      return;
+    }
     setErro(null);
     setMensagem(null);
     try {
-      await api.updateUsuario(usuario.id, { ativo: !usuario.ativo });
+      await api.updateUsuario(usuario.id, { ativo: true });
       await carregar();
-      setMensagem(`Usuario ${usuario.username} ${usuario.ativo ? "desativado" : "reativado"}.`);
+      setMensagem(`Usuario ${usuario.username} reativado.`);
     } catch (error) {
-      setErro(error instanceof ApiError ? error.message : "Nao foi possivel atualizar o usuario.");
+      setErro(error instanceof ApiError ? error.message : "Nao foi possivel reativar o usuario.");
+    }
+  }
+
+  async function confirmarDesativacao() {
+    if (!desativando) return;
+    setErro(null);
+    setMensagem(null);
+    try {
+      await api.updateUsuario(desativando.id, {
+        ativo: false,
+        motivo_desativacao: motivoDesativacao.trim() || null,
+      });
+      setDesativando(null);
+      setMotivoDesativacao("");
+      await carregar();
+      setMensagem(`Usuario ${desativando.username} desativado. Use a aba 'Inativos' para reativa-lo.`);
+    } catch (error) {
+      setErro(error instanceof ApiError ? error.message : "Nao foi possivel desativar o usuario.");
+      setDesativando(null);
+      setMotivoDesativacao("");
+    }
+  }
+
+  async function excluirUsuario(usuario: UsuarioAtual) {
+    // Onda 9 (RF-01): exclusao fisica com confirmacao; 409 tratado com o motivo da API.
+    if (!window.confirm(`Excluir DEFINITIVAMENTE o usuario ${usuario.username}? Esta acao nao pode ser desfeita.`)) {
+      return;
+    }
+    setErro(null);
+    setMensagem(null);
+    try {
+      await api.excluirUsuario(usuario.id);
+      await carregar();
+      setMensagem(`Usuario ${usuario.username} excluido definitivamente.`);
+    } catch (error) {
+      setErro(error instanceof ApiError ? error.message : "Nao foi possivel excluir o usuario.");
     }
   }
 
@@ -125,6 +184,24 @@ export function UsuariosPage() {
         <p>Somente administradores acessam esta pagina. Novos usuarios recebem senha temporaria e devem troca-la no primeiro acesso.</p>
 
         <div className="usuarios-toolbar">
+          <div className="turno-tabs" role="tablist" aria-label="Filtro de status">
+            {(["ativos", "inativos", "todos"] as const).map((valor) => (
+              <button
+                key={valor}
+                type="button"
+                role="tab"
+                aria-selected={filtroStatus === valor}
+                className={`turno-tabs__button${filtroStatus === valor ? " turno-tabs__button--active" : ""}`}
+                onClick={() => setFiltroStatus(valor)}
+              >
+                {valor === "ativos"
+                  ? `Ativos (${contadores.ativos})`
+                  : valor === "inativos"
+                    ? `Inativos (${contadores.inativos})`
+                    : `Todos (${contadores.todos})`}
+              </button>
+            ))}
+          </div>
           <input
             value={busca}
             onChange={(event) => setBusca(event.target.value)}
@@ -135,6 +212,30 @@ export function UsuariosPage() {
             Atualizar
           </button>
         </div>
+
+        {desativando ? (
+          <div className="nova-senha-box" role="dialog" aria-label="Desativar usuario">
+            <strong>Desativar {desativando.username}</strong>
+            <p>O usuario perde o acesso imediatamente. O login continuara generico para ele.</p>
+            <label>
+              Motivo (opcional)
+              <input
+                value={motivoDesativacao}
+                onChange={(event) => setMotivoDesativacao(event.target.value)}
+                placeholder="desligado, afastamento..."
+                maxLength={255}
+              />
+            </label>
+            <div className="exportar-acoes">
+              <button className="primary-button" type="button" onClick={() => void confirmarDesativacao()}>
+                Confirmar desativacao
+              </button>
+              <button className="ghost-button" type="button" onClick={() => setDesativando(null)}>
+                Cancelar
+              </button>
+            </div>
+          </div>
+        ) : null}
 
         {erro && <p className="form-error" role="alert">{erro}</p>}
         {mensagem && <p className="form-success" role="status">{mensagem}</p>}
@@ -156,6 +257,12 @@ export function UsuariosPage() {
                 <th>Funcao</th>
                 <th>Professor vinculado</th>
                 <th>Situacao</th>
+                {filtroStatus !== "ativos" ? (
+                  <>
+                    <th>Motivo</th>
+                    <th>Desativado em</th>
+                  </>
+                ) : null}
                 <th>Acoes</th>
               </tr>
             </thead>
@@ -189,12 +296,21 @@ export function UsuariosPage() {
                     )}
                   </td>
                   <td>{usuario.ativo ? "Ativo" : "Inativo"}</td>
+                  {filtroStatus !== "ativos" ? (
+                    <>
+                      <td>{usuario.motivo_desativacao ?? "—"}</td>
+                      <td>{usuario.desativado_em ? new Date(usuario.desativado_em).toLocaleDateString("pt-BR") : "—"}</td>
+                    </>
+                  ) : null}
                   <td>
                     <button className="ghost-button" type="button" onClick={() => void alternarAtivo(usuario)}>
                       {usuario.ativo ? "Desativar" : "Reativar"}
                     </button>
                     <button className="ghost-button" type="button" onClick={() => void resetarSenha(usuario)}>
                       Resetar senha
+                    </button>
+                    <button className="ghost-button" type="button" onClick={() => void excluirUsuario(usuario)}>
+                      Excluir
                     </button>
                   </td>
                 </tr>
