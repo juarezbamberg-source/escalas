@@ -22,8 +22,6 @@ export function UsuariosPage() {
   const [username, setUsername] = useState("");
   const [funcao, setFuncao] = useState("professor");
   const [senhaTemporaria, setSenhaTemporaria] = useState("");
-  const [professorId, setProfessorId] = useState<number | "">("");
-  const [professores, setProfessores] = useState<{ id: number; nome: string }[]>([]);
   const [professorId, setProfessorId] = useState<number | null | "">("");
 
   const carregar = useCallback(async () => {
@@ -42,36 +40,6 @@ export function UsuariosPage() {
   useEffect(() => {
     void carregar();
   }, [carregar]);
-
-  useEffect(() => {
-    // Onda 8: lista de professores ativos para o campo "Professor vinculado".
-    let active = true;
-    api
-      .listProfessores(false)
-      .then((itens) => {
-        if (active) setProfessores(itens);
-      })
-      .catch(() => {
-        if (active) setProfessores([]);
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    // Onda 8: lista de professores ativos para o campo "Professor vinculado".
-    let active = true;
-    void api
-      .listProfessores()
-      .then((itens) => {
-        if (active) setProfessores(itens.map((p) => ({ id: p.id, nome: p.nome })));
-      })
-      .catch(() => undefined);
-    return () => {
-      active = false;
-    };
-  }, []);
 
   useEffect(() => {
     async function carregarProfessores() {
@@ -117,22 +85,6 @@ export function UsuariosPage() {
       setMensagem(`Usuario ${usuario.username} ${usuario.ativo ? "desativado" : "reativado"}.`);
     } catch (error) {
       setErro(error instanceof ApiError ? error.message : "Nao foi possivel atualizar o usuario.");
-    }
-  }
-
-  async function vincularProfessor(usuario: UsuarioAtual, professorId: number | null) {
-    setErro(null);
-    setMensagem(null);
-    try {
-      await api.updateUsuario(usuario.id, { professor_id: professorId });
-      await carregar();
-      setMensagem(
-        professorId == null
-          ? `Vinculo removido de ${usuario.username}.`
-          : `Usuario ${usuario.username} vinculado ao professor.`,
-      );
-    } catch (error) {
-      setErro(error instanceof ApiError ? error.message : "Nao foi possivel vincular o professor.");
     }
   }
 
