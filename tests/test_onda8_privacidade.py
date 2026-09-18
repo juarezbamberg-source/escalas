@@ -1,5 +1,7 @@
 """Testes da Onda 8 — F1: privacidade por função (ADR-008)."""
 
+from datetime import date, timedelta
+
 from app.core.security import criar_token_acesso, gerar_hash_senha
 from app.db.session import get_db
 from app.models import Funcao, Professor, Usuario
@@ -50,13 +52,15 @@ def _criar_turma(client, codigo: str, uc_id: int) -> dict:
     return response.json()
 
 
-def _criar_alocacao(client, turma_id: int, titular_id: int, data: str = "2026-03-16") -> dict:
+def _criar_alocacao(
+    client, turma_id: int, titular_id: int, data: str = "2026-03-16", turno: str = "manha"
+) -> dict:
     response = client.post(
         "/alocacoes",
         json={
             "turma_id": turma_id,
             "data": data,
-            "turno": "manha",
+            "turno": turno,
             "professor_titular_id": titular_id,
             "professor_substituto_id": None,
             "liberar_fim_de_semana": False,
@@ -89,13 +93,16 @@ def _criar_alocacao_com_substituto(
 
 
 def _criar_atribuicao(client, professor_id: int, turma_id: int, uc_id: int) -> dict:
+    # Vigencia a partir de hoje: cobre alocacoes de hoje em diante sem cair
+    # na regra de retroatividade (data_inicio < hoje exige justificativa).
+    hoje = date.today()
     response = client.post(
         "/atribuicoes",
         json={
             "professor_id": professor_id,
             "turma_id": turma_id,
             "uc_id": uc_id,
-            "data_inicio": "2099-01-01",
+            "data_inicio": hoje.isoformat(),
             "data_fim": "2099-12-31",
         },
     )
@@ -224,17 +231,21 @@ def test_professor_recebe_403_em_atribuicoes_de_terceiros(client) -> None:
 
 
 def test_resumo_dashboard_padrao_mes_corrente(client) -> None:
+    # Periodo padrao e o mes corrente: calculado a partir de hoje para o
+    # teste nao depender de data fixa (falharia na virada do mes).
+    hoje = date.today()
     uc = _criar_uc(client, "UC1")
     turma = _criar_turma(client, "T1", uc["id"])
     prof = _criar_professor(client, "Prof Resumo")
-    _criar_alocacao(client, turma["id"], prof["id"], data="2026-09-10")
-    _criar_alocacao(client, turma["id"], prof["id"], data="2026-09-11")
+    _criar_atribuicao(client, prof["id"], turma["id"], uc["id"])
+    _criar_alocacao(client, turma["id"], prof["id"], data=hoje.isoformat(), turno="manha")
+    _criar_alocacao(client, turma["id"], prof["id"], data=hoje.isoformat(), turno="tarde")
 
     resposta = client.get("/dashboard/resumo")
     assert resposta.status_code == 200, resposta.text
     corpo = resposta.json()
-    assert corpo["data_inicio"] == "2026-09-01"
-    assert corpo["data_fim"] == "2026-09-14"
+    assert corpo["data_inicio"] == hoje.replace(day=1).isoformat()
+    assert corpo["data_fim"] == hoje.isoformat()
     assert corpo["total_alocacoes"] >= 2
     assert corpo["total_substituicoes"] == 0
     assert "manha" in corpo["alocacoes_por_turno"]

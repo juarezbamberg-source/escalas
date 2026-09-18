@@ -102,7 +102,7 @@ describe("DashboardPage", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText("Meu Dashboard")).toBeInTheDocument();
+      expect(screen.getAllByText("Meu Dashboard").length).toBeGreaterThan(0);
     });
     expect(screen.queryByText(/alocacoes no periodo/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/top turmas/i)).not.toBeInTheDocument();

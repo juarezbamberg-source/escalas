@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 
 import { SectionCard } from "../components/SectionCard";
+import { getStoredUser } from "../lib/auth";
 
 const highlights = [
   "Consulta por turno com calendario e semaforo visual",
@@ -9,6 +10,9 @@ const highlights = [
 ];
 
 export function HomePage() {
+  const usuario = getStoredUser();
+  const ehProfessor = usuario?.funcao === "professor";
+
   return (
     <div className="page-grid">
       <SectionCard eyebrow="Fluxo principal" title="Comece pelo turno do dia">
@@ -17,15 +21,28 @@ export function HomePage() {
           grade e o registro de novas alocacoes a partir desse eixo.
         </p>
         <div className="cta-row">
-          <Link to="/escala" className="primary-link">
-            Abrir escala por turno
-          </Link>
-          <Link to="/dashboard" className="secondary-link">
-            Ver dashboard de graficos
-          </Link>
-          <Link to="/cadastros" className="secondary-link">
-            Ir para cadastros
-          </Link>
+          {ehProfessor ? (
+            <>
+              <Link to="/dashboard" className="primary-link">
+                Abrir Meu Dashboard
+              </Link>
+              <Link to="/minhas-atribuicoes" className="secondary-link">
+                Ver minhas atribuicoes
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link to="/escala" className="primary-link">
+                Abrir escala por turno
+              </Link>
+              <Link to="/dashboard" className="secondary-link">
+                Ver dashboard de graficos
+              </Link>
+              <Link to="/cadastros" className="secondary-link">
+                Ir para cadastros
+              </Link>
+            </>
+          )}
         </div>
       </SectionCard>
 
