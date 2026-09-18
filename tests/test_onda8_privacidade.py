@@ -52,13 +52,15 @@ def _criar_turma(client, codigo: str, uc_id: int) -> dict:
     return response.json()
 
 
-def _criar_alocacao(client, turma_id: int, titular_id: int, data: str = "2026-03-16") -> dict:
+def _criar_alocacao(
+    client, turma_id: int, titular_id: int, data: str = "2026-03-16", turno: str = "manha"
+) -> dict:
     response = client.post(
         "/alocacoes",
         json={
             "turma_id": turma_id,
             "data": data,
-            "turno": "manha",
+            "turno": turno,
             "professor_titular_id": titular_id,
             "professor_substituto_id": None,
             "liberar_fim_de_semana": False,
@@ -91,16 +93,16 @@ def _criar_alocacao_com_substituto(
 
 
 def _criar_atribuicao(client, professor_id: int, turma_id: int, uc_id: int) -> dict:
-    # Vigencia ampla a partir de ontem: cobre alocações de hoje e de datas
-    # passadas do mes corrente sem cair na regra de retroatividade.
-    ontem = date.today() - timedelta(days=1)
+    # Vigencia a partir de hoje: cobre alocacoes de hoje em diante sem cair
+    # na regra de retroatividade (data_inicio < hoje exige justificativa).
+    hoje = date.today()
     response = client.post(
         "/atribuicoes",
         json={
             "professor_id": professor_id,
             "turma_id": turma_id,
             "uc_id": uc_id,
-            "data_inicio": ontem.isoformat(),
+            "data_inicio": hoje.isoformat(),
             "data_fim": "2099-12-31",
         },
     )
@@ -235,8 +237,9 @@ def test_resumo_dashboard_padrao_mes_corrente(client) -> None:
     uc = _criar_uc(client, "UC1")
     turma = _criar_turma(client, "T1", uc["id"])
     prof = _criar_professor(client, "Prof Resumo")
-    _criar_alocacao(client, turma["id"], prof["id"], data=hoje.isoformat())
-    _criar_alocacao(client, turma["id"], prof["id"], data=(hoje - timedelta(days=1)).isoformat())
+    _criar_atribuicao(client, prof["id"], turma["id"], uc["id"])
+    _criar_alocacao(client, turma["id"], prof["id"], data=hoje.isoformat(), turno="manha")
+    _criar_alocacao(client, turma["id"], prof["id"], data=hoje.isoformat(), turno="tarde")
 
     resposta = client.get("/dashboard/resumo")
     assert resposta.status_code == 200, resposta.text
