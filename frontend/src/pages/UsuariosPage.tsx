@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from "react";
 
 import { api, ApiError } from "../lib/api";
 import type { UsuarioAtual } from "../lib/auth";
-import type { Professor } from "../types/api";
 
 type NovaSenhaInfo = {
   username: string;
@@ -22,9 +21,7 @@ export function UsuariosPage() {
   const [funcao, setFuncao] = useState("professor");
   const [senhaTemporaria, setSenhaTemporaria] = useState("");
   const [professores, setProfessores] = useState<{ id: number; nome: string }[]>([]);
-  const [professorId, setProfessorId] = useState<number | "">("");
-  const [professores, setProfessores] = useState<Professor[]>([]);
-  const [professorId, setProfessorId] = useState<number | null>(null);
+  const [professorId, setProfessorId] = useState<number | null | "">("");
 
   const carregar = useCallback(async () => {
     setCarregando(true);
