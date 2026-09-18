@@ -182,11 +182,23 @@ export const api = {
     const query = params.toString();
     return request<UsuarioListResponse>(`/usuarios${query ? `?${query}` : ""}`);
   },
-  createUsuario: (payload: { nome: string; username: string; funcao: string; senha_temporaria: string }) =>
+  createUsuario: (payload: {
+    nome: string;
+    username: string;
+    funcao: string;
+    senha_temporaria: string;
+    professor_id?: number | null;
+  }) =>
     request<UsuarioAtual>("/usuarios", { method: "POST", body: JSON.stringify(payload) }),
   updateUsuario: (
     usuarioId: number,
-    payload: { nome?: string; funcao?: string; ativo?: boolean; nova_senha_temporaria?: string },
+    payload: {
+      nome?: string;
+      funcao?: string;
+      ativo?: boolean;
+      professor_id?: number | null;
+      nova_senha_temporaria?: string;
+    },
   ) => request<UsuarioAtual>(`/usuarios/${usuarioId}`, { method: "PATCH", body: JSON.stringify(payload) }),
   desativarUsuario: (usuarioId: number) =>
     request<UsuarioAtual>(`/usuarios/${usuarioId}`, { method: "DELETE" }),

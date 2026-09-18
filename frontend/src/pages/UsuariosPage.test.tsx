@@ -30,6 +30,9 @@ describe("UsuariosPage", () => {
             return Promise.resolve(new Response(JSON.stringify(respostas[trecho]), { status: 200 }));
           }
         }
+        if (url.includes("/professores")) {
+          return Promise.resolve(new Response(JSON.stringify([]), { status: 200 }));
+        }
         return Promise.resolve(new Response(JSON.stringify({ items: [], total: 0 }), { status: 200 }));
       }),
     );

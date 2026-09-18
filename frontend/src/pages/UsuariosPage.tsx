@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { api, ApiError } from "../lib/api";
 import type { UsuarioAtual } from "../lib/auth";
+import type { Professor } from "../types/api";
 
 type NovaSenhaInfo = {
   username: string;
@@ -20,6 +21,8 @@ export function UsuariosPage() {
   const [username, setUsername] = useState("");
   const [funcao, setFuncao] = useState("professor");
   const [senhaTemporaria, setSenhaTemporaria] = useState("");
+  const [professores, setProfessores] = useState<Professor[]>([]);
+  const [professorId, setProfessorId] = useState<number | null>(null);
 
   const carregar = useCallback(async () => {
     setCarregando(true);
@@ -38,17 +41,35 @@ export function UsuariosPage() {
     void carregar();
   }, [carregar]);
 
+  useEffect(() => {
+    async function carregarProfessores() {
+      try {
+        setProfessores(await api.listProfessores());
+      } catch {
+        // Sem professores o select fica vazio; o vinculo continua possivel depois.
+      }
+    }
+    void carregarProfessores();
+  }, []);
+
   async function criarUsuario(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setErro(null);
     setMensagem(null);
     try {
-      const criado = await api.createUsuario({ nome, username, funcao, senha_temporaria: senhaTemporaria });
+      const criado = await api.createUsuario({
+        nome,
+        username,
+        funcao,
+        senha_temporaria: senhaTemporaria,
+        professor_id: funcao === "professor" ? professorId : null,
+      });
       setNovaSenha({ username: criado.username, senha: senhaTemporaria });
       setNome("");
       setUsername("");
       setFuncao("professor");
       setSenhaTemporaria("");
+      setProfessorId(null);
       await carregar();
     } catch (error) {
       setErro(error instanceof ApiError ? error.message : "Nao foi possivel criar o usuario.");
@@ -77,6 +98,22 @@ export function UsuariosPage() {
       await carregar();
     } catch (error) {
       setErro(error instanceof ApiError ? error.message : "Nao foi possivel resetar a senha.");
+    }
+  }
+
+  async function vincularProfessor(usuario: UsuarioAtual, professorIdNovo: number | null) {
+    setErro(null);
+    setMensagem(null);
+    try {
+      await api.updateUsuario(usuario.id, { professor_id: professorIdNovo });
+      await carregar();
+      setMensagem(
+        professorIdNovo
+          ? `Usuario ${usuario.username} vinculado ao professor.`
+          : `Vinculo do usuario ${usuario.username} removido.`,
+      );
+    } catch (error) {
+      setErro(error instanceof ApiError ? error.message : "Nao foi possivel vincular o professor.");
     }
   }
 
@@ -117,6 +154,7 @@ export function UsuariosPage() {
                 <th>Usuario</th>
                 <th>Nome</th>
                 <th>Funcao</th>
+                <th>Professor vinculado</th>
                 <th>Situacao</th>
                 <th>Acoes</th>
               </tr>
@@ -127,6 +165,29 @@ export function UsuariosPage() {
                   <td>{usuario.username}</td>
                   <td>{usuario.nome}</td>
                   <td>{usuario.funcao}</td>
+                  <td>
+                    {usuario.funcao === "professor" ? (
+                      <select
+                        aria-label={`Professor vinculado a ${usuario.username}`}
+                        value={usuario.professor_id ?? ""}
+                        onChange={(event) =>
+                          void vincularProfessor(
+                            usuario,
+                            event.target.value === "" ? null : Number(event.target.value),
+                          )
+                        }
+                      >
+                        <option value="">Sem vinculo</option>
+                        {professores.map((professor) => (
+                          <option key={professor.id} value={professor.id}>
+                            {professor.nome}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      "-"
+                    )}
+                  </td>
                   <td>{usuario.ativo ? "Ativo" : "Inativo"}</td>
                   <td>
                     <button className="ghost-button" type="button" onClick={() => void alternarAtivo(usuario)}>
@@ -162,6 +223,24 @@ export function UsuariosPage() {
               <option value="admin">Admin</option>
             </select>
           </label>
+          {funcao === "professor" ? (
+            <label>
+              Professor vinculado
+              <select
+                value={professorId ?? ""}
+                onChange={(event) =>
+                  setProfessorId(event.target.value === "" ? null : Number(event.target.value))
+                }
+              >
+                <option value="">Sem vinculo (dashboard vazio)</option>
+                {professores.map((professor) => (
+                  <option key={professor.id} value={professor.id}>
+                    {professor.nome}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
           <label>
             Senha temporaria
             <input value={senhaTemporaria} onChange={(event) => setSenhaTemporaria(event.target.value)} required minLength={8} type="text" />
