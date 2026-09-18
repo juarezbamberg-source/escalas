@@ -21,6 +21,8 @@ export function UsuariosPage() {
   const [username, setUsername] = useState("");
   const [funcao, setFuncao] = useState("professor");
   const [senhaTemporaria, setSenhaTemporaria] = useState("");
+  const [professores, setProfessores] = useState<{ id: number; nome: string }[]>([]);
+  const [professorId, setProfessorId] = useState<number | "">("");
   const [professores, setProfessores] = useState<Professor[]>([]);
   const [professorId, setProfessorId] = useState<number | null>(null);
 
@@ -40,6 +42,20 @@ export function UsuariosPage() {
   useEffect(() => {
     void carregar();
   }, [carregar]);
+
+  useEffect(() => {
+    // Onda 8: lista de professores ativos para o campo "Professor vinculado".
+    let active = true;
+    void api
+      .listProfessores()
+      .then((itens) => {
+        if (active) setProfessores(itens.map((p) => ({ id: p.id, nome: p.nome })));
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     async function carregarProfessores() {
@@ -62,14 +78,14 @@ export function UsuariosPage() {
         username,
         funcao,
         senha_temporaria: senhaTemporaria,
-        professor_id: funcao === "professor" ? professorId : null,
+        professor_id: funcao === "professor" && professorId !== "" ? professorId : null,
       });
       setNovaSenha({ username: criado.username, senha: senhaTemporaria });
       setNome("");
       setUsername("");
       setFuncao("professor");
       setSenhaTemporaria("");
-      setProfessorId(null);
+      setProfessorId("");
       await carregar();
     } catch (error) {
       setErro(error instanceof ApiError ? error.message : "Nao foi possivel criar o usuario.");
@@ -245,6 +261,19 @@ export function UsuariosPage() {
             Senha temporaria
             <input value={senhaTemporaria} onChange={(event) => setSenhaTemporaria(event.target.value)} required minLength={8} type="text" />
           </label>
+          {funcao === "professor" ? (
+            <label>
+              Professor vinculado
+              <select value={professorId} onChange={(event) => setProfessorId(event.target.value === "" ? "" : Number(event.target.value))}>
+                <option value="">Sem vinculo (dashboard vazio)</option>
+                {professores.map((professor) => (
+                  <option key={professor.id} value={professor.id}>
+                    {professor.nome}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
           <button className="primary-button" type="submit">
             Criar usuario
           </button>

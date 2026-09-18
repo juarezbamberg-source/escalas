@@ -13,11 +13,18 @@ import { MinhasAtribuicoesPage } from "../pages/MinhasAtribuicoesPage";
 import { clearSession, getStoredUser } from "../lib/auth";
 import { useAppStatus } from "./AppStatusContext";
 
-const navItems = [
+// Onda 8 (ADR-008): escala e cadastros sao operacionais da coordenacao;
+// o professor acessa suas informacoes por Minhas Atribuicoes e Meu Dashboard.
+const navItemsCoordenacao = [
   { to: "/", label: "Visao Geral", end: true },
   { to: "/escala", label: "Escala por Turno" },
   { to: "/cadastros", label: "Cadastros e Alocacoes" },
   { to: "/dashboard", label: "Dashboard de Graficos" },
+];
+
+const navItemsProfessor = [
+  { to: "/", label: "Visao Geral", end: true },
+  { to: "/dashboard", label: "Meu Dashboard" },
 ];
 
 const adminNavItems = [{ to: "/usuarios", label: "Usuarios" }];
@@ -42,6 +49,13 @@ function AppShell() {
   const navigate = useNavigate();
   const usuario = getStoredUser();
 
+  // Onda 8 (ADR-008): rotas operacionais bloqueadas para professor no backend;
+  // o frontend redireciona em vez de exibir a pagina quebrando com 403.
+  const rotasRestritas = ["/escala", "/cadastros"];
+  if (usuario?.funcao === "professor" && rotasRestritas.includes(window.location.pathname)) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
   function sair() {
     clearSession();
     navigate("/login");
@@ -60,7 +74,7 @@ function AppShell() {
           <div className="hero__pulse" aria-live="polite"><span className={`hero__status ${pendingRequests > 0 ? "hero__status--busy" : ""}`} />{pendingRequests > 0 ? "Sincronizando com a API" : `${usuario?.nome ?? "Usuario"} • ${usuario?.funcao ?? ""}`}</div>
         </div>
         <nav className="top-nav" aria-label="Navegacao principal">
-          {navItems.map((item) => <NavLink key={item.to} to={item.to} end={item.end} className={({ isActive }) => `top-nav__link${isActive ? " top-nav__link--active" : ""}`}>{item.label}</NavLink>)}
+          {(usuario?.funcao === "professor" ? navItemsProfessor : navItemsCoordenacao).map((item) => <NavLink key={item.to} to={item.to} end={item.end} className={({ isActive }) => `top-nav__link${isActive ? " top-nav__link--active" : ""}`}>{item.label}</NavLink>)}
           {usuario?.funcao === "admin" && adminNavItems.map((item) => <NavLink key={item.to} to={item.to} className={({ isActive }) => `top-nav__link${isActive ? " top-nav__link--active" : ""}`}>{item.label}</NavLink>)}
           {usuario?.funcao === "coordenacao" && coordenacaoNavItems.map((item) => <NavLink key={item.to} to={item.to} className={({ isActive }) => `top-nav__link${isActive ? " top-nav__link--active" : ""}`}>{item.label}</NavLink>)}
           {usuario?.funcao === "professor" && professorNavItems.map((item) => <NavLink key={item.to} to={item.to} className={({ isActive }) => `top-nav__link${isActive ? " top-nav__link--active" : ""}`}>{item.label}</NavLink>)}
