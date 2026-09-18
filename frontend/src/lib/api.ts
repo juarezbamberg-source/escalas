@@ -197,11 +197,12 @@ export const api = {
       funcao?: string;
       ativo?: boolean;
       professor_id?: number | null;
+      motivo_desativacao?: string | null;
       nova_senha_temporaria?: string;
     },
   ) => request<UsuarioAtual>(`/usuarios/${usuarioId}`, { method: "PATCH", body: JSON.stringify(payload) }),
-  desativarUsuario: (usuarioId: number) =>
-    request<UsuarioAtual>(`/usuarios/${usuarioId}`, { method: "DELETE" }),
+  excluirUsuario: (usuarioId: number) =>
+    request<void>(`/usuarios/${usuarioId}`, { method: "DELETE" }),
   deleteAlocacoesBulk: (payload: { alocacao_ids: number[]; confirmar: boolean }) =>
     request<AlocacaoBulkDeleteResponse>("/alocacoes/remocao-lote", { method: "POST", body: JSON.stringify(payload) }),
   deleteAlocacao: (alocacaoId: number, confirmar = true) =>

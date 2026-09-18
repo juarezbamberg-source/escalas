@@ -8,6 +8,8 @@ export type UsuarioAtual = {
   ativo: boolean;
   trocar_senha_no_proximo_acesso: boolean;
   professor_id: number | null;
+  motivo_desativacao?: string | null;
+  desativado_em?: string | null;
 };
 
 const TOKEN_KEY = "escalas.access_token";

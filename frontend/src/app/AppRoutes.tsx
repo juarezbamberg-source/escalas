@@ -29,10 +29,8 @@ const navItemsProfessor = [
 
 const adminNavItems = [{ to: "/usuarios", label: "Usuarios" }];
 
-const coordenacaoNavItems = [
-  { to: "/usuarios", label: "Usuarios" },
-  { to: "/atribuicoes", label: "Atribuicoes" },
-];
+// Onda 9 (RF-07): tela de usuarios e admin-only no menu (backend ja exige ADMIN).
+const coordenacaoNavItems = [{ to: "/atribuicoes", label: "Atribuicoes" }];
 
 const professorNavItems = [{ to: "/minhas-atribuicoes", label: "Minhas Atribuicoes" }];
 
