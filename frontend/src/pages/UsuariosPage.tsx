@@ -261,7 +261,7 @@ export function UsuariosPage() {
           {funcao === "professor" ? (
             <label>
               Professor vinculado
-              <select value={professorId} onChange={(event) => setProfessorId(event.target.value === "" ? "" : Number(event.target.value))}>
+              <select value={professorId ?? ""} onChange={(event) => setProfessorId(event.target.value === "" ? "" : Number(event.target.value))}>
                 <option value="">Sem vinculo (dashboard vazio)</option>
                 {professores.map((professor) => (
                   <option key={professor.id} value={professor.id}>
