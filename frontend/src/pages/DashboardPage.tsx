@@ -4,7 +4,12 @@ import { useAppStatus } from "../app/AppStatusContext";
 import { PeriodoSelector, PRESETS_PADRAO, type Periodo } from "../components/PeriodoSelector";
 import { SectionCard } from "../components/SectionCard";
 import { api, ApiError } from "../lib/api";
-import { exportarCargaExcel, exportarCargaPdf } from "../lib/exportar";
+import {
+  exportarCargaExcel,
+  exportarCargaPdf,
+  exportarDashboardExcel,
+  exportarDashboardPdf,
+} from "../lib/exportar";
 import { getStoredUser } from "../lib/auth";
 import type { CargaPrevistaItem, CargaProfessorItem, DashboardResumo } from "../types/api";
 
