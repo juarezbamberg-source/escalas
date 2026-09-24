@@ -124,7 +124,10 @@ describe("AppRoutes", () => {
 
     renderApp("/");
 
-    await userEvent.click(screen.getByRole("link", { name: /abrir dashboard de graficos/i }));
+    const linkDashboard = screen
+      .getAllByRole("link", { name: /dashboard de graficos/i })
+      .find((link) => link.getAttribute("href") === "/dashboard");
+    await userEvent.click(linkDashboard!);
 
     expect(
       await screen.findByRole("heading", { name: /total de horas por professor/i }),

@@ -54,9 +54,143 @@ button {
 }
 
 .app-shell {
-  width: min(1240px, calc(100% - 32px));
+  width: min(1400px, calc(100% - 32px));
   margin: 0 auto;
-  padding: 24px 0 40px;
+  padding: 16px 0 40px;
+}
+
+/* Onda 11 (RF-04): header fixo + sidebar agrupada */
+.app-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: linear-gradient(135deg, rgba(12, 25, 39, 0.88), rgba(20, 45, 70, 0.92));
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 12px 18px;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(14px);
+}
+
+.app-header__titulo {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.app-header__titulo strong {
+  font-size: 1.02rem;
+}
+
+.app-header__titulo span {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.app-header__usuario {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.menu-toggle {
+  display: none;
+}
+
+.app-body {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 20px;
+  margin-top: 20px;
+  align-items: start;
+}
+
+.app-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 18px 14px;
+  position: sticky;
+  top: 16px;
+}
+
+.app-sidebar__grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.app-sidebar__titulo {
+  margin: 0 0 4px;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.app-sidebar__link {
+  display: block;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  color: var(--text);
+  font-size: 0.94rem;
+  transition: background 140ms ease, border-color 140ms ease;
+}
+
+.app-sidebar__link:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.app-sidebar__link--active {
+  background: linear-gradient(135deg, rgba(240, 137, 79, 0.28), rgba(130, 168, 255, 0.22));
+  border-color: rgba(240, 137, 79, 0.45);
+}
+
+.app-sidebar__overlay {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .menu-toggle {
+    display: inline-block;
+  }
+
+  .app-body {
+    grid-template-columns: 1fr;
+  }
+
+  .app-sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: min(300px, 82vw);
+    z-index: 40;
+    border-radius: 0 18px 18px 0;
+    transform: translateX(-105%);
+    transition: transform 180ms ease;
+    overflow-y: auto;
+  }
+
+  .app-sidebar--aberta {
+    transform: translateX(0);
+  }
+
+  .app-sidebar__overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    background: rgba(4, 10, 18, 0.6);
+    border: none;
+  }
+
+  .app-header__titulo span {
+    display: none;
+  }
 }
 
 .hero {

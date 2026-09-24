@@ -80,7 +80,7 @@ describe("CadastrosPage", () => {
       }),
     );
 
-    renderApp("/cadastros");
+    renderApp("/cadastros/alocacoes");
 
     await userEvent.type(await screen.findByLabelText(/^Data$/i), "2026-03-16");
     await userEvent.click(screen.getByRole("button", { name: /salvar alocacao/i }));
@@ -115,7 +115,7 @@ describe("CadastrosPage", () => {
       }),
     );
 
-    renderApp("/cadastros");
+    renderApp("/cadastros/alocacoes");
 
     await userEvent.type(await screen.findByLabelText(/^Data$/i), "2026-03-16");
     await userEvent.click(screen.getByRole("button", { name: /salvar alocacao/i }));
@@ -128,7 +128,7 @@ describe("CadastrosPage", () => {
   it("preenche o formulario de alocacao com o contexto vindo da tela de escala", async () => {
     vi.stubGlobal("fetch", buildReferenceFetchMock());
 
-    renderApp("/cadastros?action=override&turno=manha&data=2026-03-16&turmaId=1&titularId=1");
+    renderApp("/cadastros/alocacoes?action=override&turno=manha&data=2026-03-16&turmaId=1&titularId=1");
 
     expect(await screen.findByText(/acao contextual da escala/i)).toBeInTheDocument();
     expect(screen.getByText(/override com justificativa assistida/i)).toBeInTheDocument();
@@ -164,7 +164,7 @@ describe("CadastrosPage", () => {
 
     vi.stubGlobal("fetch", fetchMock);
 
-    renderApp("/cadastros?action=remover&alocacaoId=9&turno=manha&data=2026-03-16&turmaId=1");
+    renderApp("/cadastros/alocacoes?action=remover&alocacaoId=9&turno=manha&data=2026-03-16&turmaId=1");
 
     expect(await screen.findByText(/remocao contextual da alocacao/i)).toBeInTheDocument();
 
@@ -314,7 +314,7 @@ describe("CadastrosPage", () => {
       }),
     );
 
-    renderApp("/cadastros");
+    renderApp("/cadastros/alocacoes");
 
     await screen.findByText(/lancamento recorrente por dias da semana/i);
     await user.type(screen.getByLabelText(/data inicial do lote/i), "2026-03-16");
@@ -369,7 +369,7 @@ describe("CadastrosPage", () => {
       }),
     );
 
-    renderApp("/cadastros");
+    renderApp("/cadastros/professores");
 
     await screen.findAllByText("Maria Ativa");
     expect(screen.queryByText("Joao Inativo")).not.toBeInTheDocument();
@@ -415,7 +415,7 @@ describe("CadastrosPage", () => {
       }),
     );
 
-    renderApp("/cadastros", true, {
+    renderApp("/cadastros/professores", true, {
       id: 1,
       nome: "Coordenador",
       username: "coord",
@@ -468,7 +468,7 @@ describe("CadastrosPage", () => {
       }),
     );
 
-    renderApp("/cadastros", true, {
+    renderApp("/cadastros/professores", true, {
       id: 1,
       nome: "Coordenador",
       username: "coord",
@@ -514,7 +514,7 @@ describe("CadastrosPage", () => {
       }),
     );
 
-    renderApp("/cadastros", true, {
+    renderApp("/cadastros/professores", true, {
       id: 1,
       nome: "Coordenador",
       username: "coord",
