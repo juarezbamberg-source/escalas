@@ -18,6 +18,8 @@ router = APIRouter(dependencies=[Depends(require_usuario_habilitado)])
 def listar_carga_professores(
     tipo: str = Query(default="realizada", pattern="^(prevista|realizada)$"),
     vigente_em: date | None = Query(default=None),
+    data_inicio: date | None = Query(default=None),
+    data_fim: date | None = Query(default=None),
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(get_current_usuario),
 ) -> list[CargaProfessorItem] | list[CargaPrevistaItem]:
@@ -25,11 +27,16 @@ def listar_carga_professores(
 
     Onda 8 (ADR-008): professor autenticado recebe somente a propria carga;
     coordenação e admin recebem a visão completa.
+
+    Onda 11 (RF-01): data_inicio/data_fim filtram a carga realizada por
+    periodo; sem os parametros, historico completo (retrocompativel).
     """
     if tipo == "prevista":
         itens = carga_service.calcular_carga_prevista_por_professor(db, vigente_em=vigente_em)
     else:
-        itens = carga_service.calcular_carga_por_professor(db)
+        itens = carga_service.calcular_carga_por_professor(
+            db, data_inicio=data_inicio, data_fim=data_fim
+        )
     if usuario.funcao == Funcao.PROFESSOR:
         if usuario.professor_id is None:
             return []

@@ -11,25 +11,35 @@ from app.schemas.carga import CargaPrevistaItem, CargaProfessorItem
 HORAS_POR_ALOCACAO = 3
 
 
-def calcular_carga_por_professor(db: Session) -> list[CargaProfessorItem]:
+def calcular_carga_por_professor(
+    db: Session, data_inicio: date | None = None, data_fim: date | None = None
+) -> list[CargaProfessorItem]:
     """Consolida a carga horaria de todos os professores (Onda 3).
 
     Substitui a agregacao que o DashboardPage fazia no cliente carregando
     todas as alocacoes dos tres turnos. Aqui a consulta e feita no banco.
+
+    Onda 11 (RF-01): quando data_inicio/data_fim sao informadas, somente
+    alocacoes dentro do periodo entram no calculo; sem os parametros o
+    comportamento e o historico completo (retrocompativel).
     """
     professores = db.scalars(select(Professor).order_by(Professor.nome.asc())).all()
     if not professores:
         return []
 
     ids = [professor.id for professor in professores]
-    alocacoes = db.scalars(
-        select(Alocacao).where(
-            or_(
-                Alocacao.professor_titular_id.in_(ids),
-                Alocacao.professor_substituto_id.in_(ids),
-            )
+    filtros = [
+        or_(
+            Alocacao.professor_titular_id.in_(ids),
+            Alocacao.professor_substituto_id.in_(ids),
         )
-    ).all()
+    ]
+    if data_inicio is not None:
+        filtros.append(Alocacao.data >= data_inicio)
+    if data_fim is not None:
+        filtros.append(Alocacao.data <= data_fim)
+    alocacoes = db.scalars(select(Alocacao).where(*filtros)).all()
+
 
     por_professor: dict[int, list[Alocacao]] = defaultdict(list)
     for alocacao in alocacoes:
