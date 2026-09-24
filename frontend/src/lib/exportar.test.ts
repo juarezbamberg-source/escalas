@@ -62,16 +62,16 @@ describe("exportar escala", () => {
     vi.clearAllMocks();
   });
 
-  it("gera PDF em paisagem com tabela via autotable", () => {
-    exportarEscalaPdf(linhas, recorte);
+  it("gera PDF em paisagem com tabela via autotable", async () => {
+    await exportarEscalaPdf(linhas, recorte);
 
     expect(jsPdfMock.chamadas).toContainEqual({ orientation: "landscape" });
     expect(autoTableMock.aplicar).toHaveBeenCalledTimes(1);
     expect(jsPdfMock.instancias[0]?.save).toHaveBeenCalledWith("escala-manha.pdf");
   });
 
-  it("gera planilha Excel com cabecalho e linhas", () => {
-    exportarEscalaExcel(linhas, recorte);
+  it("gera planilha Excel com cabecalho e linhas", async () => {
+    await exportarEscalaExcel(linhas, recorte);
 
     expect(xlsxMock.utils.aoa_to_sheet).toHaveBeenCalledTimes(1);
     expect(xlsxMock.utils.book_append_sheet).toHaveBeenCalledTimes(1);
