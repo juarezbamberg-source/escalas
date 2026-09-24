@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
+import { SectionCard } from "../components/SectionCard";
 import { api, ApiError } from "../lib/api";
 import type { Atribuicao } from "../types/api";
 
@@ -94,10 +95,8 @@ export function AtribuicoesPage() {
   }
 
   return (
-    <div className="page-grid">
-      <section className="section-card">
-        <div className="section-card__eyebrow">Coordenacao</div>
-        <h2>Atribuicoes de turma/UC</h2>
+    <div className="page-stack">
+      <SectionCard eyebrow="Coordenacao" title="Atribuicoes de turma/UC">
         <p>
           Atribua professores titulares e substitutos as turmas/UCs com vigencia. Alocacoes novas
           exigem atribuicao ativa na data.
@@ -107,9 +106,9 @@ export function AtribuicoesPage() {
         {mensagem && <p className="form-success" role="status">{mensagem}</p>}
 
         {carregando ? (
-          <p>Carregando atribuicoes...</p>
+          <p className="state-message">Carregando atribuicoes...</p>
         ) : atribuicoes.length === 0 ? (
-          <p>Nenhuma atribuicao cadastrada ainda.</p>
+          <p className="state-message">Nenhuma atribuicao cadastrada ainda.</p>
         ) : (
           <table className="usuarios-table">
             <thead>
@@ -142,10 +141,9 @@ export function AtribuicoesPage() {
             </tbody>
           </table>
         )}
-      </section>
+      </SectionCard>
 
-      <section className="section-card">
-        <h2>Nova atribuicao</h2>
+      <SectionCard eyebrow="Coordenacao" title="Nova atribuicao">
         <form onSubmit={criarAtribuicao} className="form-stack">
           <label>
             Professor titular
@@ -214,7 +212,7 @@ export function AtribuicoesPage() {
             Criar atribuicao
           </button>
         </form>
-      </section>
+      </SectionCard>
     </div>
   );
 }

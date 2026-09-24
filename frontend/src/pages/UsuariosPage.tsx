@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
+import { SectionCard } from "../components/SectionCard";
 import { api, ApiError } from "../lib/api";
 import type { UsuarioAtual } from "../lib/auth";
 import type { Professor } from "../types/api";
@@ -177,10 +178,8 @@ export function UsuariosPage() {
   }
 
   return (
-    <div className="page-grid">
-      <section className="section-card">
-        <div className="section-card__eyebrow">Administracao</div>
-        <h2>Usuarios do sistema</h2>
+    <div className="page-stack">
+      <SectionCard eyebrow="Administracao" title="Usuarios do sistema">
         <p>Somente administradores acessam esta pagina. Novos usuarios recebem senha temporaria e devem troca-la no primeiro acesso.</p>
 
         <div className="usuarios-toolbar">
@@ -318,10 +317,9 @@ export function UsuariosPage() {
             </tbody>
           </table>
         )}
-      </section>
+      </SectionCard>
 
-      <section className="section-card">
-        <h2>Novo usuario</h2>
+      <SectionCard eyebrow="Administracao" title="Novo usuario">
         <form onSubmit={criarUsuario} className="form-stack">
           <label>
             Nome
@@ -365,7 +363,7 @@ export function UsuariosPage() {
             Criar usuario
           </button>
         </form>
-      </section>
+      </SectionCard>
     </div>
   );
 }
