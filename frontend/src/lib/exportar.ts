@@ -88,3 +88,129 @@ export async function exportarEscalaExcel(linhas: LinhaEscala[], recorte: Recort
   xlsx.utils.book_append_sheet(pasta, planilha, "Escala");
   xlsx.writeFile(pasta, `escala-${recorte.turno}.xlsx`);
 }
+
+// --- Onda 11 (RF-03): exportacoes do Dashboard e da Carga, com periodo no cabecalho ---
+
+export type LinhaCarga = {
+  professor_nome: string;
+  horas: number;
+  detalhe: string;
+};
+
+export type LinhaResumo = {
+  titulo: string;
+  valor: string;
+};
+
+function periodoTexto(periodo: PeriodoExportacao): string {
+  return `Periodo: ${periodo.inicio.split("-").reverse().join("/")} a ${periodo.fim
+    .split("-")
+    .reverse()
+    .join("/")}`;
+}
+
+export type PeriodoExportacao = { inicio: string; fim: string };
+
+export async function exportarCargaPdf(
+  linhas: LinhaCarga[],
+  periodo: PeriodoExportacao,
+  titulo: string,
+): Promise<void> {
+  const [{ jsPDF }, { default: autoTable }] = await Promise.all([
+    import("jspdf"),
+    import("jspdf-autotable"),
+  ]);
+
+  const doc = new jsPDF({ orientation: "landscape" });
+  doc.setFontSize(14);
+  doc.text(titulo, 14, 16);
+  doc.setFontSize(10);
+  doc.text(periodoTexto(periodo), 14, 23);
+
+  autoTable(doc, {
+    startY: 28,
+    head: [["Professor", "Horas", "Detalhe"]],
+    body: linhas.map((linha) => [linha.professor_nome, String(linha.horas), linha.detalhe]),
+    styles: { fontSize: 8 },
+    headStyles: { fillColor: [41, 128, 185] },
+  });
+
+  doc.save("carga-professores.pdf");
+}
+
+export async function exportarCargaExcel(
+  linhas: LinhaCarga[],
+  periodo: PeriodoExportacao,
+  titulo: string,
+): Promise<void> {
+  const xlsx = await import("xlsx");
+
+  const planilha = xlsx.utils.aoa_to_sheet([
+    [titulo],
+    [periodoTexto(periodo)],
+    [],
+    ["Professor", "Horas", "Detalhe"],
+    ...linhas.map((linha) => [linha.professor_nome, linha.horas, linha.detalhe]),
+  ]);
+  const pasta = xlsx.utils.book_new();
+  xlsx.utils.book_append_sheet(pasta, planilha, "Carga");
+  xlsx.writeFile(pasta, "carga-professores.xlsx");
+}
+
+export async function exportarDashboardPdf(
+  resumo: LinhaResumo[],
+  carga: LinhaCarga[],
+  periodo: PeriodoExportacao,
+): Promise<void> {
+  const [{ jsPDF }, { default: autoTable }] = await Promise.all([
+    import("jspdf"),
+    import("jspdf-autotable"),
+  ]);
+
+  const doc = new jsPDF({ orientation: "landscape" });
+  doc.setFontSize(14);
+  doc.text("Dashboard operacional", 14, 16);
+  doc.setFontSize(10);
+  doc.text(periodoTexto(periodo), 14, 23);
+
+  autoTable(doc, {
+    startY: 28,
+    head: [["Indicador", "Valor"]],
+    body: resumo.map((linha) => [linha.titulo, linha.valor]),
+    styles: { fontSize: 8 },
+    headStyles: { fillColor: [41, 128, 185] },
+  });
+
+  const ultimaLinha = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable;
+  autoTable(doc, {
+    startY: (ultimaLinha?.finalY ?? 28) + 8,
+    head: [["Professor", "Horas", "Detalhe"]],
+    body: carga.map((linha) => [linha.professor_nome, String(linha.horas), linha.detalhe]),
+    styles: { fontSize: 8 },
+    headStyles: { fillColor: [41, 128, 185] },
+  });
+
+  doc.save("dashboard-operacional.pdf");
+}
+
+export async function exportarDashboardExcel(
+  resumo: LinhaResumo[],
+  carga: LinhaCarga[],
+  periodo: PeriodoExportacao,
+): Promise<void> {
+  const xlsx = await import("xlsx");
+
+  const planilha = xlsx.utils.aoa_to_sheet([
+    ["Dashboard operacional"],
+    [periodoTexto(periodo)],
+    [],
+    ["Indicador", "Valor"],
+    ...resumo.map((linha) => [linha.titulo, linha.valor]),
+    [],
+    ["Professor", "Horas", "Detalhe"],
+    ...carga.map((linha) => [linha.professor_nome, linha.horas, linha.detalhe]),
+  ]);
+  const pasta = xlsx.utils.book_new();
+  xlsx.utils.book_append_sheet(pasta, planilha, "Dashboard");
+  xlsx.writeFile(pasta, "dashboard-operacional.xlsx");
+}

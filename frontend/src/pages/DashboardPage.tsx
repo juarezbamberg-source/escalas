@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { useAppStatus } from "../app/AppStatusContext";
+import { PeriodoSelector, PRESETS_PADRAO, type Periodo } from "../components/PeriodoSelector";
 import { SectionCard } from "../components/SectionCard";
 import { api, ApiError } from "../lib/api";
+import { exportarCargaExcel, exportarCargaPdf } from "../lib/exportar";
 import { getStoredUser } from "../lib/auth";
 import type { CargaPrevistaItem, CargaProfessorItem, DashboardResumo } from "../types/api";
 
@@ -12,6 +14,7 @@ export function DashboardPage() {
   const usuario = getStoredUser();
   const ehProfessor = usuario?.funcao === "professor";
   const [tipo, setTipo] = useState<TipoCarga>("realizada");
+  const [periodo, setPeriodo] = useState<Periodo>(() => PRESETS_PADRAO[0].calcular());
   const [rowsRealizada, setRowsRealizada] = useState<CargaProfessorItem[]>([]);
   const [rowsPrevista, setRowsPrevista] = useState<CargaPrevistaItem[]>([]);
   const [resumo, setResumo] = useState<DashboardResumo | null>(null);
@@ -28,7 +31,10 @@ export function DashboardPage() {
 
       try {
         if (tipo === "prevista") {
-          const resposta = (await api.listCargaProfessores("prevista")) as CargaPrevistaItem[];
+          const resposta = (await api.listCargaProfessores(
+            "prevista",
+            periodo.fim,
+          )) as CargaPrevistaItem[];
           if (active) {
             setRowsPrevista(
               resposta.sort(
@@ -38,7 +44,12 @@ export function DashboardPage() {
             );
           }
         } else {
-          const resposta = (await api.listCargaProfessores("realizada")) as CargaProfessorItem[];
+          const resposta = (await api.listCargaProfessores(
+            "realizada",
+            undefined,
+            periodo.inicio,
+            periodo.fim,
+          )) as CargaProfessorItem[];
           if (active) {
             setRowsRealizada(
               resposta.sort(
@@ -49,7 +60,7 @@ export function DashboardPage() {
           }
         }
         if (!ehProfessor) {
-          const respostaResumo = await api.dashboardResumo();
+          const respostaResumo = await api.dashboardResumo(periodo.inicio, periodo.fim);
           if (active) {
             setResumo(respostaResumo);
           }
@@ -77,7 +88,7 @@ export function DashboardPage() {
     return () => {
       active = false;
     };
-  }, [clearMessages, ehProfessor, showError, startLoading, stopLoading, tipo]);
+  }, [clearMessages, ehProfessor, showError, startLoading, stopLoading, tipo, periodo]);
 
   const rowsPrevistas = tipo === "prevista";
   const rows = rowsPrevistas ? rowsPrevista : rowsRealizada;
@@ -96,6 +107,7 @@ export function DashboardPage() {
             ? "Acompanhe a sua carga realizada (alocacoes lancadas) e prevista (atribuicoes vigentes)."
             : "Compare a carga prevista (atribuicoes com vigencia) e a carga realizada (alocacoes lancadas) por professor."}
         </p>
+        <PeriodoSelector value={periodo} onChange={setPeriodo} />
         <div className="turno-tabs" role="tablist" aria-label="Tipo de carga">
           <button
             type="button"
@@ -122,6 +134,52 @@ export function DashboardPage() {
         eyebrow="Carga por professor"
         title={rowsPrevistas ? "Horas previstas por professor (atribuicoes)" : "Total de horas por professor (alocacoes)"}
       >
+        {!loading && rows.length > 0 ? (
+          <div className="exportar-acoes">
+            <button
+              type="button"
+              className="ghost-button"
+              onClick={() =>
+                void exportarCargaPdf(
+                  rows.map((row) => ({
+                    professor_nome: row.professor_nome,
+                    horas: row.horas,
+                    detalhe: rowsPrevistas
+                      ? `${(row as CargaPrevistaItem).atribuicoes} atribuicao(oes) • ${(row as CargaPrevistaItem).turmas} turma(s)`
+                      : `${(row as CargaProfessorItem).alocacoes} alocacao(oes) • Manha ${(row as CargaProfessorItem).manha}h • Tarde ${(row as CargaProfessorItem).tarde}h • Noite ${(row as CargaProfessorItem).noite}h`,
+                  })),
+                  periodo,
+                  rowsPrevistas
+                    ? "Carga prevista por professor"
+                    : "Carga realizada por professor",
+                )
+              }
+            >
+              Exportar PDF
+            </button>
+            <button
+              type="button"
+              className="ghost-button"
+              onClick={() =>
+                void exportarCargaExcel(
+                  rows.map((row) => ({
+                    professor_nome: row.professor_nome,
+                    horas: row.horas,
+                    detalhe: rowsPrevistas
+                      ? `${(row as CargaPrevistaItem).atribuicoes} atribuicao(oes) • ${(row as CargaPrevistaItem).turmas} turma(s)`
+                      : `${(row as CargaProfessorItem).alocacoes} alocacao(oes) • Manha ${(row as CargaProfessorItem).manha}h • Tarde ${(row as CargaProfessorItem).tarde}h • Noite ${(row as CargaProfessorItem).noite}h`,
+                  })),
+                  periodo,
+                  rowsPrevistas
+                    ? "Carga prevista por professor"
+                    : "Carga realizada por professor",
+                )
+              }
+            >
+              Exportar Excel
+            </button>
+          </div>
+        ) : null}
         {loading ? (
           <p className="state-message">Carregando carga consolidada por professor...</p>
         ) : null}
@@ -183,6 +241,60 @@ export function DashboardPage() {
 
       {!ehProfessor && resumo ? (
         <SectionCard eyebrow="Operacao no periodo" title={`Resumo de ${resumo.data_inicio.split("-").reverse().join("/")} a ${resumo.data_fim.split("-").reverse().join("/")}`}>
+          <div className="exportar-acoes">
+            <button
+              type="button"
+              className="ghost-button"
+              onClick={() =>
+                void exportarDashboardPdf(
+                  [
+                    { titulo: "Alocacoes no periodo", valor: String(resumo.total_alocacoes) },
+                    { titulo: "Substituicoes", valor: String(resumo.total_substituicoes) },
+                    {
+                      titulo: "Turmas com alocacao",
+                      valor: String(resumo.alocacoes_por_turma.length),
+                    },
+                  ],
+                  rows.map((row) => ({
+                    professor_nome: row.professor_nome,
+                    horas: row.horas,
+                    detalhe: rowsPrevistas
+                      ? `${(row as CargaPrevistaItem).atribuicoes} atribuicao(oes) • ${(row as CargaPrevistaItem).turmas} turma(s)`
+                      : `${(row as CargaProfessorItem).alocacoes} alocacao(oes) • Manha ${(row as CargaProfessorItem).manha}h • Tarde ${(row as CargaProfessorItem).tarde}h • Noite ${(row as CargaProfessorItem).noite}h`,
+                  })),
+                  { inicio: resumo.data_inicio, fim: resumo.data_fim },
+                )
+              }
+            >
+              Exportar PDF
+            </button>
+            <button
+              type="button"
+              className="ghost-button"
+              onClick={() =>
+                void exportarDashboardExcel(
+                  [
+                    { titulo: "Alocacoes no periodo", valor: String(resumo.total_alocacoes) },
+                    { titulo: "Substituicoes", valor: String(resumo.total_substituicoes) },
+                    {
+                      titulo: "Turmas com alocacao",
+                      valor: String(resumo.alocacoes_por_turma.length),
+                    },
+                  ],
+                  rows.map((row) => ({
+                    professor_nome: row.professor_nome,
+                    horas: row.horas,
+                    detalhe: rowsPrevistas
+                      ? `${(row as CargaPrevistaItem).atribuicoes} atribuicao(oes) • ${(row as CargaPrevistaItem).turmas} turma(s)`
+                      : `${(row as CargaProfessorItem).alocacoes} alocacao(oes) • Manha ${(row as CargaProfessorItem).manha}h • Tarde ${(row as CargaProfessorItem).tarde}h • Noite ${(row as CargaProfessorItem).noite}h`,
+                  })),
+                  { inicio: resumo.data_inicio, fim: resumo.data_fim },
+                )
+              }
+            >
+              Exportar Excel
+            </button>
+          </div>
           <div className="dashboard-summary">
             <article className="period-summary__card">
               <strong>{resumo.total_alocacoes}</strong>
