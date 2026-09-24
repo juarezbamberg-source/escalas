@@ -1,8 +1,5 @@
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
-import * as XLSX from "xlsx";
-
-// Onda 8 (RF-09): exportacao da escala por turno/periodo em PDF e Excel.
+// Onda 10 (code-split): jsPDF e xlsx sao carregados sob demanda (dynamic import),
+// tirando ~700kB do bundle inicial; os chunks baixam apenas no clique em Exportar.
 
 export type LinhaEscala = {
   turma_codigo: string;
@@ -53,7 +50,12 @@ function formatarData(iso: string): string {
   return `${dia}/${mes}/${ano}`;
 }
 
-export function exportarEscalaPdf(linhas: LinhaEscala[], recorte: RecorteEscala): void {
+export async function exportarEscalaPdf(linhas: LinhaEscala[], recorte: RecorteEscala): Promise<void> {
+  const [{ jsPDF }, { default: autoTable }] = await Promise.all([
+    import("jspdf"),
+    import("jspdf-autotable"),
+  ]);
+
   const doc = new jsPDF({ orientation: "landscape" });
   const [titulo, periodo] = cabecalho(recorte);
 
@@ -73,14 +75,16 @@ export function exportarEscalaPdf(linhas: LinhaEscala[], recorte: RecorteEscala)
   doc.save(`escala-${recorte.turno}.pdf`);
 }
 
-export function exportarEscalaExcel(linhas: LinhaEscala[], recorte: RecorteEscala): void {
-  const planilha = XLSX.utils.aoa_to_sheet([
+export async function exportarEscalaExcel(linhas: LinhaEscala[], recorte: RecorteEscala): Promise<void> {
+  const xlsx = await import("xlsx");
+
+  const planilha = xlsx.utils.aoa_to_sheet([
     cabecalho(recorte),
     [],
     ["Data", "Turma", "Turno", "Titular", "Substituto", "Forcada", "Status"],
     ...corpoTabela(linhas),
   ]);
-  const pasta = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(pasta, planilha, "Escala");
-  XLSX.writeFile(pasta, `escala-${recorte.turno}.xlsx`);
+  const pasta = xlsx.utils.book_new();
+  xlsx.utils.book_append_sheet(pasta, planilha, "Escala");
+  xlsx.writeFile(pasta, `escala-${recorte.turno}.xlsx`);
 }

@@ -1231,7 +1231,7 @@ export function EscalaPage() {
               type="button"
               className="ghost-button"
               onClick={() =>
-                exportarEscalaPdf(
+                void exportarEscalaPdf(
                   filteredRows.map((row) => ({
                     turma_codigo: row.turma_codigo,
                     data: row.data,
@@ -1251,7 +1251,7 @@ export function EscalaPage() {
               type="button"
               className="ghost-button"
               onClick={() =>
-                exportarEscalaExcel(
+                void exportarEscalaExcel(
                   filteredRows.map((row) => ({
                     turma_codigo: row.turma_codigo,
                     data: row.data,
