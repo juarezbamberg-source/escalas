@@ -124,7 +124,7 @@ describe("AppRoutes", () => {
 
     renderApp("/");
 
-    await userEvent.click(screen.getByRole("link", { name: /abrir dashboard de graficos/i }));
+    await userEvent.click(screen.getByRole("link", { name: /dashboard de graficos/i }));
 
     expect(
       await screen.findByRole("heading", { name: /total de horas por professor/i }),

@@ -369,7 +369,7 @@ describe("CadastrosPage", () => {
       }),
     );
 
-    renderApp("/cadastros/alocacoes");
+    renderApp("/cadastros/professores");
 
     await screen.findAllByText("Maria Ativa");
     expect(screen.queryByText("Joao Inativo")).not.toBeInTheDocument();
