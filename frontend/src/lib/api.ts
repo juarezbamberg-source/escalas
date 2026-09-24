@@ -133,9 +133,16 @@ export const api = {
     justificativa_override: string | null;
     confirmar: boolean;
   }) => request<AlocacaoBulkCreateResponse>("/alocacoes/recorrente", { method: "POST", body: JSON.stringify(payload) }),
-  listCargaProfessores: (tipo: "prevista" | "realizada" = "realizada", vigenteEm?: string) => {
+  listCargaProfessores: (
+    tipo: "prevista" | "realizada" = "realizada",
+    vigenteEm?: string,
+    dataInicio?: string,
+    dataFim?: string,
+  ) => {
     const params = new URLSearchParams([["tipo", tipo]]);
     if (vigenteEm) params.set("vigente_em", vigenteEm);
+    if (dataInicio) params.set("data_inicio", dataInicio);
+    if (dataFim) params.set("data_fim", dataFim);
     return request<(CargaProfessorItem | CargaPrevistaItem)[]>(`/professores/carga?${params.toString()}`);
   },
   dashboardResumo: (dataInicio?: string, dataFim?: string) => {
