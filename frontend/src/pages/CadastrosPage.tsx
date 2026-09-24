@@ -25,6 +25,11 @@ type ReferenceData = {
 
 type FiltroStatus = "ativos" | "inativos" | "todos";
 
+// Onda 11 (RF-04): a antiga pagina unica de Cadastros virou 4 rotas
+// (/cadastros/professores|turmas|ucs|alocacoes); a prop `secao` controla
+// quais cartoes aparecem em cada uma, reaproveitando todo o estado/logica.
+export type SecaoCadastros = "professores" | "turmas" | "ucs" | "alocacoes";
+
 type BulkRecurringForm = {
   turma_id: number;
   data_inicial: string;
@@ -85,7 +90,7 @@ function isWeekendDate(value: string) {
   return weekDay === 0 || weekDay === 6;
 }
 
-export function CadastrosPage() {
+export function CadastrosPage({ secao = "professores" }: { secao?: SecaoCadastros }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [referenceData, setReferenceData] = useState<ReferenceData>({
     professores: [],
@@ -489,6 +494,7 @@ export function CadastrosPage() {
           Cadastre professores, unidades curriculares, turmas, alocacoes isoladas e lancamentos
           recorrentes sem sair da aplicacao.
         </p>
+        {secao === "professores" || secao === "ucs" || secao === "turmas" ? (
         <div className="cadastros-toolbar">
           <div className="turno-tabs" role="tablist" aria-label="Filtro de status">
             {(["ativos", "inativos", "todos"] as FiltroStatus[]).map((valor) => (
@@ -515,6 +521,7 @@ export function CadastrosPage() {
             aria-label="Buscar por nome ou codigo"
           />
         </div>
+        ) : null}
       </SectionCard>
 
       {actionContext.action ? (
@@ -551,6 +558,7 @@ export function CadastrosPage() {
         </SectionCard>
       ) : null}
 
+      {secao === "professores" || secao === "ucs" ? (
       <div className="two-column-grid">
         <SectionCard eyebrow="Professores" title="Cadastro de docentes">
           <form
@@ -771,7 +779,9 @@ export function CadastrosPage() {
           ) : null}
         </SectionCard>
       </div>
+      ) : null}
 
+      {secao === "turmas" || secao === "alocacoes" ? (
       <div className="two-column-grid">
         <SectionCard eyebrow="Turmas" title="Cadastro de turmas">
           <form
@@ -1086,7 +1096,9 @@ export function CadastrosPage() {
           )}
         </SectionCard>
       </div>
+      ) : null}
 
+      {secao === "alocacoes" ? (
       <SectionCard eyebrow="Cadastro em lote" title="Lancamento recorrente por dias da semana">
         <div className="guided-note">
           <strong>Fluxo para nova UC em operacao</strong>
@@ -1325,6 +1337,7 @@ export function CadastrosPage() {
           </p>
         )}
       </SectionCard>
+      ) : null}
     </div>
   );
 }
