@@ -1,0 +1,24 @@
+# Estado local que NUNCA vai para a imagem
+escalas.db
+*.db
+*.sqlite
+.venv
+venv
+__pycache__
+*.pyc
+.pytest_cache
+.coverage
+htmlcov
+
+# Frontend (fase 1: so backend no Docker)
+frontend/node_modules
+frontend/dist
+
+# Git e docs
+.git
+.github
+refatoração codigo
+openspec
+docs
+*.md
+!README.md
