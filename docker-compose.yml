@@ -1,0 +1,13 @@
+services:
+  backend:
+    build: .
+    container_name: escalas-backend
+    ports:
+      - "8000:8000"
+    env_file: .env
+    volumes:
+      - escalas_data:/data
+    restart: unless-stopped
+
+volumes:
+  escalas_data:
