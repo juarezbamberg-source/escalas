@@ -1,47 +1,90 @@
-# Backend em Docker (Fase 2 — full stack)
+# Inicialização da aplicação (Docker)
 
-Todo o sistema roda em containers: backend FastAPI + frontend React servido pelo Nginx.
+Procedimento completo para subir o sistema em qualquer máquina.
 
-## Subir
+## Pré-requisito
+
+- **Docker Desktop** instalado e rodando (Windows/Mac: docker.com; no Windows habilita WSL2 durante a instalação; Linux: `docker` + plugin `docker compose`).
+
+Nada mais é necessário — sem Python, sem Node.
+
+## 1. Clonar o repositório
+
+```powershell
+git clone https://github.com/juarezbamberg-source/escalas.git
+cd escalas
+```
+
+## 2. Criar o arquivo `.env` na raiz
+
+O `.env` não vai no git. Criar na raiz do projeto com o conteúdo mínimo:
+
+```
+DATABASE_URL=sqlite:////data/escalas.db
+SECRET_KEY=troque-esta-chave-em-producao-com-no-minimo-32-bytes!
+ADMIN_USERNAME=admin
+ADMIN_SENHA_INICIAL=TroqueEstaSenha123
+ADMIN_NOME=Administrador
+```
+
+- `ADMIN_SENHA_INICIAL` é a senha temporária do admin — troca obrigatória no primeiro login.
+- `SECRET_KEY` deve ser trocada por um valor aleatório próprio (mín. 32 caracteres).
+
+## 3. Subir os containers
 
 ```powershell
 docker compose up --build -d
 ```
 
-O entrypoint do backend aplica migrações, roda o seed do admin (idempotente) e sobe o uvicorn. O frontend é buildado (Vite) e servido pelo Nginx.
+Na primeira execução as imagens são construídas (~2–3 min). O backend aplica as migrações do banco, cria o admin e sobe a API; o frontend é buildado e servido pelo Nginx.
 
-## Acessar
+## 4. Acessar
 
-- **Sistema: `http://localhost:8080`** (Nginx — use este no dia a dia)
-- API direta: `http://localhost:8000/docs`
+- **Sistema: http://localhost:8080** (login: `admin` / senha do `.env`)
+- API direta: http://localhost:8000/docs
 
-O Nginx faz o papel do proxy do Vite: chamadas `/api/*` no navegador vão para `backend:8000` dentro da rede do compose — mesma origem, sem CORS.
-
-## Configuração
-
-O `.env` da raiz é lido pelo container do backend. Mínimo para o seed:
-
-```
-ADMIN_USERNAME=admin
-ADMIN_SENHA_INICIAL=troque-esta-senha
-ADMIN_NOME=Administrador
-```
-
-O banco SQLite vive no volume nomeado `escalas_data` (montado em `/data`) — sobrevive a `down` e rebuild. Para resetar tudo:
+## Verificar se está tudo no ar
 
 ```powershell
-docker compose down -v
+docker compose ps
 ```
 
-## Verificar
+Ambos os containers (`escalas-backend`, `escalas-frontend`) devem aparecer `Up`.
 
 ```powershell
-docker compose logs backend     # migrações + seed + uvicorn
-docker compose logs frontend    # nginx pronto
-docker compose ps               # ambos "Up"
+docker compose logs backend
 ```
 
-## Conflito de portas
+Deve mostrar, nesta ordem: migrações (0001→0006), `[seed] Super admin criado`, `Uvicorn running`.
 
-O compose usa **8000** (backend) e **8080** (frontend). Se outro projeto (ex.: encontros-tech) estiver na 8000, pare-o antes — ou edite o mapeamento no `docker-compose.yml` (e o `VITE_API_BASE_URL` não precisa mudar: o proxy é interno ao Nginx).
+## Comandos do dia a dia
 
+| Ação | Comando |
+|---|---|
+| Parar | `docker compose down` |
+| Iniciar de novo (sem rebuild) | `docker compose up -d` |
+| Atualizar o código | `git pull` e depois `docker compose up --build -d` |
+| Ver logs em tempo real | `docker compose logs -f backend` |
+| Resetar banco (apaga dados) | `docker compose down -v` |
+
+## Backup do banco
+
+O único estado do sistema é o banco SQLite no volume `escalas_data`.
+
+```powershell
+# Backup
+docker compose exec backend cat /data/escalas.db > backup-escalas.db
+
+# Restaurar em outra máquina (com os containers parados)
+docker compose down
+docker volume create websiteescalas_escalas_data
+docker run --rm -v websiteescalas_escalas_data:/data -v ${PWD}:/backup alpine cp /backup/escalas.db /data/escalas.db
+docker compose up -d
+```
+
+## Portas usadas
+
+- **8080** — frontend (Nginx)
+- **8000** — backend (API)
+
+Se outra aplicação na máquina usar a 8000, pare-a antes de subir (ou edite o mapeamento no `docker-compose.yml`).
