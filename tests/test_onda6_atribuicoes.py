@@ -25,8 +25,8 @@ def _payload(professor_id: int, turma_id: int, uc_id: int, **extras) -> dict:
         "professor_id": professor_id,
         "turma_id": turma_id,
         "uc_id": uc_id,
-        "data_inicio": "2026-10-01",
-        "data_fim": "2026-12-31",
+        "data_inicio": "2030-10-01",
+        "data_fim": "2030-12-31",
         "professor_substituto_id": None,
         "justificativa_retroativa": None,
     }
@@ -57,11 +57,11 @@ def test_listar_por_professor_e_vigencia(client) -> None:
     assert por_professor.status_code == 200
     assert len(por_professor.json()) == 1
 
-    dentro = client.get("/atribuicoes?vigente_em=2026-11-01")
+    dentro = client.get("/atribuicoes?vigente_em=2030-11-01")
     assert dentro.status_code == 200
     assert len(dentro.json()) == 1
 
-    fora = client.get("/atribuicoes?vigente_em=2027-01-01")
+    fora = client.get("/atribuicoes?vigente_em=2031-01-01")
     assert fora.status_code == 200
     assert len(fora.json()) == 0
 
@@ -111,10 +111,10 @@ def test_patch_atualiza_vigencia_e_delete_exige_confirmar(client) -> None:
 
     atualizada = client.patch(
         f"/atribuicoes/{criada['id']}",
-        json={"data_fim": "2026-11-30"},
+        json={"data_fim": "2030-11-30"},
     )
     assert atualizada.status_code == 200
-    assert atualizada.json()["data_fim"] == "2026-11-30"
+    assert atualizada.json()["data_fim"] == "2030-11-30"
 
     sem_confirmar = client.delete(f"/atribuicoes/{criada['id']}")
     assert sem_confirmar.status_code == 400
