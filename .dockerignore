@@ -10,7 +10,7 @@ __pycache__
 .coverage
 htmlcov
 
-# Frontend (fase 1: so backend no Docker)
+# Frontend (fase 2: buildado dentro do Dockerfile.frontend)
 frontend/node_modules
 frontend/dist
 
