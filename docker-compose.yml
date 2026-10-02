@@ -9,5 +9,16 @@ services:
       - escalas_data:/data
     restart: unless-stopped
 
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: escalas-frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
 volumes:
   escalas_data:
