@@ -52,6 +52,18 @@ def _criar_turma(client, codigo: str, uc_id: int) -> dict:
     return response.json()
 
 
+def _proximo_dia_util(data: date) -> date:
+    """Desloca a data para frente ate cair em dia util (seg-sex).
+
+    O CI roda em UTC: testes que usam date.today() podem cair em fim de
+    semana (a regra de negocio bloqueia alocacao em fim de semana sem
+    liberar_fim_de_semana), o que quebraria o teste por causa do relogio.
+    """
+    while data.weekday() >= 5:
+        data += timedelta(days=1)
+    return data
+
+
 def _criar_alocacao(
     client, turma_id: int, titular_id: int, data: str = "2026-03-16", turno: str = "manha"
 ) -> dict:
@@ -233,7 +245,8 @@ def test_professor_recebe_403_em_atribuicoes_de_terceiros(client) -> None:
 def test_resumo_dashboard_padrao_mes_corrente(client) -> None:
     # Periodo padrao e o mes corrente: calculado a partir de hoje para o
     # teste nao depender de data fixa (falharia na virada do mes).
-    hoje = date.today()
+    # Alocacoes em dia util: fim de semana e bloqueado pela regra de negocio.
+    hoje = _proximo_dia_util(date.today())
     uc = _criar_uc(client, "UC1")
     turma = _criar_turma(client, "T1", uc["id"])
     prof = _criar_professor(client, "Prof Resumo")
