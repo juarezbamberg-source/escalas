@@ -203,9 +203,25 @@ docker compose logs frontend   # nginx pronto
 - **Sistema: http://localhost:8080** — login `admin` / senha do `.env` (troca obrigatória no 1º acesso)
 - API direta: http://localhost:8000/docs
 
-> **WSL2 no Windows**: `localhost` funciona do navegador Windows direto para o
-> serviço dentro da distro (localhost forwarding padrão). Se não funcionar, pegue
-> o IP da distro com `hostname -I` e use `http://<IP>:8080`.
+> **WSL2 no Windows**: se `http://localhost:8080` não abrir no navegador Windows
+> (comportamento comum — o localhost forwarding do WSL2 nem sempre está ativo),
+> use o IP da distro:
+>
+> ```bash
+> hostname -I | awk '{print $1}'    # ex.: 172.31.85.97
+> ```
+>
+> E acesse `http://<IP>:8080`. Atenção: o IP da distro muda a cada reinício do WSL.
+> Para acesso estável via `localhost`, ative o modo de rede mirrored no Windows 11 —
+> arquivo `C:\Users\<usuario>\.wslconfig`:
+>
+> ```ini
+> [wsl2]
+> networkingMode=mirrored
+> ```
+>
+> Depois, no PowerShell: `wsl --shutdown` e reabra a distro. No modo mirrored,
+> `localhost:8080` funciona direto (o IP da distro passa a ser o da máquina).
 
 ## Fase 7 — Portas ocupadas (se aplicável)
 
