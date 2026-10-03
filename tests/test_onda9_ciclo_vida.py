@@ -7,6 +7,18 @@ from app.db.session import get_db
 from app.models import Alocacao, Atribuicao, Funcao, Professor, Usuario
 
 
+def _proximo_dia_util(data: date) -> date:
+    """Desloca a data para frente ate cair em dia util (seg-sex).
+
+    O CI roda em UTC: testes que usam date.today() podem cair em fim de
+    semana (a regra de negocio bloqueia alocacao em fim de semana sem
+    liberar_fim_de_semana), o que quebraria o teste por causa do relogio.
+    """
+    while data.weekday() >= 5:
+        data += timedelta(days=1)
+    return data
+
+
 def _db(client):
     return next(client.app.dependency_overrides[get_db]())
 
@@ -133,7 +145,7 @@ def test_desativacao_bloqueada_com_alocacao_futura(client) -> None:
     professor = _criar_professor(client, "Prof Futuro")
     uc = _criar_uc(client, "UC1")
     turma = _criar_turma(client, "T1", uc["id"])
-    data_futura = (date.today() + timedelta(days=7)).isoformat()
+    data_futura = _proximo_dia_util(date.today() + timedelta(days=7)).isoformat()
     _criar_atribuicao(client, professor["id"], turma["id"], uc["id"], data_futura, "2099-12-31")
     _criar_alocacao(client, turma["id"], professor["id"], data_futura)
 
@@ -149,7 +161,8 @@ def test_desativacao_permitida_sem_alocacao_futura(client) -> None:
     professor = _criar_professor(client, "Prof Passado")
     uc = _criar_uc(client, "UC2")
     turma = _criar_turma(client, "T2", uc["id"])
-    data_passada = (date.today() - timedelta(days=7)).isoformat()
+    # Retroativa com justificativa: qualquer dia serve; dia util evita regra de fim de semana.
+    data_passada = _proximo_dia_util(date.today() - timedelta(days=7)).isoformat()
     _criar_atribuicao(client, professor["id"], turma["id"], uc["id"], data_passada, "2099-12-31")
     _criar_alocacao(client, turma["id"], professor["id"], data_passada)
 
