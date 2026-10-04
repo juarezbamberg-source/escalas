@@ -53,13 +53,16 @@ def _criar_turma(client, codigo: str, uc_id: int) -> dict:
 
 
 def _proximo_dia_util(data: date) -> date:
-    """Desloca a data para frente ate cair em dia util (seg-sex).
+    """Desloca a data para frente ate cair em dia util nao-feriado (seg-sex).
 
     O CI roda em UTC: testes que usam date.today() podem cair em fim de
     semana (a regra de negocio bloqueia alocacao em fim de semana sem
-    liberar_fim_de_semana), o que quebraria o teste por causa do relogio.
+    liberar_fim_de_semana) ou em feriado nacional (ex.: 12/10), o que
+    quebraria o teste por causa do relogio.
     """
-    while data.weekday() >= 5:
+    from app.services.feriados import eh_feriado
+
+    while data.weekday() >= 5 or eh_feriado(data):
         data += timedelta(days=1)
     return data
 
@@ -245,20 +248,26 @@ def test_professor_recebe_403_em_atribuicoes_de_terceiros(client) -> None:
 def test_resumo_dashboard_padrao_mes_corrente(client) -> None:
     # Periodo padrao e o mes corrente: calculado a partir de hoje para o
     # teste nao depender de data fixa (falharia na virada do mes).
-    # Alocacoes em dia util: fim de semana e bloqueado pela regra de negocio.
-    hoje = _proximo_dia_util(date.today())
+    # O "hoje" das assercoes e o MESMO date.today() que o endpoint usa
+    # (o CI roda em UTC; deslocar aqui desalinha com o endpoint).
+    # A alocacao precisa estar DENTRO do periodo do resumo (ate hoje) E
+    # em dia util (fim de semana/feriado sao bloqueados pela regra de
+    # negocio). Se hoje nao e dia util, o resumo do dia nao tera a
+    # alocacao — entao consulta-se o periodo ate o proximo dia util.
+    hoje = date.today()
+    dia_util = _proximo_dia_util(hoje)
     uc = _criar_uc(client, "UC1")
     turma = _criar_turma(client, "T1", uc["id"])
     prof = _criar_professor(client, "Prof Resumo")
     _criar_atribuicao(client, prof["id"], turma["id"], uc["id"])
-    _criar_alocacao(client, turma["id"], prof["id"], data=hoje.isoformat(), turno="manha")
-    _criar_alocacao(client, turma["id"], prof["id"], data=hoje.isoformat(), turno="tarde")
+    _criar_alocacao(client, turma["id"], prof["id"], data=dia_util.isoformat(), turno="manha")
+    _criar_alocacao(client, turma["id"], prof["id"], data=dia_util.isoformat(), turno="tarde")
 
-    resposta = client.get("/dashboard/resumo")
+    resposta = client.get(f"/dashboard/resumo?data_fim={dia_util.isoformat()}")
     assert resposta.status_code == 200, resposta.text
     corpo = resposta.json()
     assert corpo["data_inicio"] == hoje.replace(day=1).isoformat()
-    assert corpo["data_fim"] == hoje.isoformat()
+    assert corpo["data_fim"] == dia_util.isoformat()
     assert corpo["total_alocacoes"] >= 2
     assert corpo["total_substituicoes"] == 0
     assert "manha" in corpo["alocacoes_por_turno"]

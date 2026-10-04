@@ -14,7 +14,9 @@ def _proximo_dia_util(data: date) -> date:
     semana (a regra de negocio bloqueia alocacao em fim de semana sem
     liberar_fim_de_semana), o que quebraria o teste por causa do relogio.
     """
-    while data.weekday() >= 5:
+    from app.services.feriados import eh_feriado
+
+    while data.weekday() >= 5 or eh_feriado(data):
         data += timedelta(days=1)
     return data
 
