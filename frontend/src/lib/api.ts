@@ -13,7 +13,7 @@ import type {
   Turma,
   UnidadeCurricular,
 } from "../types/api";
-import { getStoredToken } from "./auth";
+import { clearSession, getStoredToken } from "./auth";
 import type { UsuarioAtual } from "./auth";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api";
@@ -49,6 +49,15 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   });
 
   if (!response.ok) {
+    // Sessao invalida/expirada (401): limpa credenciais e manda para o login.
+    // Excecao: o proprio login (credenciais erradas nao devem deslogar nem
+    // redirecionar — o usuario tenta de novo na mesma tela).
+    if (response.status === 401 && !path.startsWith("/auth/login")) {
+      clearSession();
+      if (!window.location.pathname.startsWith("/login")) {
+        window.location.assign("/login");
+      }
+    }
     const body = (await response.json().catch(() => null)) as ApiErrorPayload | null;
     throw new ApiError(body?.detail ?? "Nao foi possivel concluir a operacao.", response.status);
   }
